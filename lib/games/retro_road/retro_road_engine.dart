@@ -8,8 +8,10 @@ class RetroRoadEngine {
   double playerX = 0.5;
   double speed = RetroRoadConfig.initialSpeed;
   int score = 0;
+  int distance = 0;
   int day = 1;
   int passed = 0;
+  int _scoreTick = 0;
   bool running = false;
   bool gameOver = false;
   RoadWeather weather = RoadWeather.day;
@@ -20,8 +22,10 @@ class RetroRoadEngine {
     playerX = 0.5;
     speed = RetroRoadConfig.initialSpeed;
     score = 0;
+    distance = 0;
     day = 1;
     passed = 0;
+    _scoreTick = 0;
     running = true;
     gameOver = false;
     weather = RoadWeather.day;
@@ -29,34 +33,46 @@ class RetroRoadEngine {
     cars.clear();
   }
 
-  void moveLeft() => playerX = max(0.16, playerX - 0.045 * weather.steeringMultiplier);
-  void moveRight() => playerX = min(0.84, playerX + 0.045 * weather.steeringMultiplier);
+  void moveLeft() => playerX = max(0.16, playerX - 0.034 * weather.steeringMultiplier);
+  void moveRight() => playerX = min(0.84, playerX + 0.034 * weather.steeringMultiplier);
 
   RoadEvent tick() {
     if (!running) return RoadEvent.none;
     var event = RoadEvent.none;
-    score++;
-    speed = min(RetroRoadConfig.maxSpeed, RetroRoadConfig.initialSpeed + day * 0.0014 + score / 110000);
+
+    distance++;
+    _scoreTick++;
+    if (_scoreTick >= 10) {
+      score += RetroRoadConfig.pointsPerRoadTick;
+      _scoreTick = 0;
+    }
+
+    speed = min(RetroRoadConfig.maxSpeed, RetroRoadConfig.initialSpeed + day * 0.0008 + distance / 220000);
     _updateWeather();
     if (weather != _lastWeather) { event = RoadEvent.weatherChanged; _lastWeather = weather; }
 
-    final spawnChance = 0.030 + min(0.022, day * 0.004);
+    final spawnChance = 0.018 + min(0.014, day * 0.0022);
     if (random.nextDouble() < spawnChance) {
       final lanes = [0.28, 0.40, 0.52, 0.64, 0.76];
       final lane = random.nextInt(lanes.length);
-      cars.add(RoadCar(x: lanes[lane] + (random.nextDouble() - 0.5) * 0.025, y: -0.10, lane: lane, speedFactor: 0.80 + random.nextDouble() * 0.55));
+      cars.add(RoadCar(x: lanes[lane] + (random.nextDouble() - 0.5) * 0.020, y: -0.10, lane: lane, speedFactor: 0.70 + random.nextDouble() * 0.42));
     }
 
     for (final car in cars) { car.y += speed * car.speedFactor; }
     final before = cars.length;
     cars.removeWhere((c) => c.y > 1.15);
     final removed = before - cars.length;
-    if (removed > 0) { passed += removed; score += removed * 80; event = RoadEvent.passed; }
+    if (removed > 0) {
+      passed += removed;
+      score += removed * RetroRoadConfig.pointsPerPass;
+      event = RoadEvent.passed;
+    }
 
     if (passed >= RetroRoadConfig.carsPerDay) {
       day++;
       passed = 0;
       cars.clear();
+      score += RetroRoadConfig.pointsPerDayClear;
       event = RoadEvent.dayClear;
     }
 
@@ -80,7 +96,7 @@ class RetroRoadEngine {
 
   bool _hasCrash() {
     for (final c in cars) {
-      if ((playerX - c.x).abs() < 0.055 && (RetroRoadConfig.playerY - c.y).abs() < 0.075) return true;
+      if ((playerX - c.x).abs() < 0.050 && (RetroRoadConfig.playerY - c.y).abs() < 0.066) return true;
     }
     return false;
   }
