@@ -9,6 +9,7 @@ class FuelPlaneEngine {
   double speed = FuelPlaneConfig.initialSpeed;
   int score = 0;
   int level = 1;
+  int _fireCooldown = 0;
   bool running = false;
   bool gameOver = false;
   final objects = <PlaneObject>[];
@@ -20,6 +21,7 @@ class FuelPlaneEngine {
     speed = FuelPlaneConfig.initialSpeed;
     score = 0;
     level = 1;
+    _fireCooldown = 0;
     running = true;
     gameOver = false;
     objects.clear();
@@ -28,7 +30,13 @@ class FuelPlaneEngine {
 
   void moveLeft() => planeX = max(0.08, planeX - FuelPlaneConfig.moveStep);
   void moveRight() => planeX = min(0.92, planeX + FuelPlaneConfig.moveStep);
-  void fire() => bullets.add(PlaneBullet(planeX, FuelPlaneConfig.planeY - 0.06));
+
+  void dragTo(double localDx, double width) {
+    if (!running || width <= 0) return;
+    planeX = (localDx / width).clamp(0.08, 0.92).toDouble();
+  }
+
+  void fire() => bullets.add(PlaneBullet(planeX, FuelPlaneConfig.planeY - 0.075));
 
   PlaneEvent tick() {
     if (!running) return PlaneEvent.none;
@@ -38,6 +46,14 @@ class FuelPlaneEngine {
     level = 1 + score ~/ 900;
     speed = min(FuelPlaneConfig.maxSpeed, FuelPlaneConfig.initialSpeed + level * 0.0016);
 
+    if (_fireCooldown <= 0) {
+      fire();
+      _fireCooldown = max(5, 10 - min(5, level ~/ 2));
+      event = PlaneEvent.shoot;
+    } else {
+      _fireCooldown--;
+    }
+
     final spawnChance = 0.028 + min(0.025, level * 0.003);
     if (random.nextDouble() < spawnChance) {
       final roll = random.nextDouble();
@@ -46,7 +62,7 @@ class FuelPlaneEngine {
     }
 
     for (final obj in objects) { obj.y += speed; }
-    for (final b in bullets) { b.y -= 0.04; }
+    for (final b in bullets) { b.y -= 0.048; }
     objects.removeWhere((o) => o.y > 1.12);
     bullets.removeWhere((b) => b.y < -0.08);
 
@@ -90,4 +106,4 @@ class FuelPlaneEngine {
   }
 }
 
-enum PlaneEvent { none, fuel, hit, dead }
+enum PlaneEvent { none, shoot, fuel, hit, dead }
