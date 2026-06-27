@@ -3,7 +3,12 @@ name: Build APK Direct
 on:
   workflow_dispatch:
   push:
-    branches: [ main ]
+    branches:
+      - main
+      - chatgpt-v3-real-retro
+    paths-ignore:
+      - 'apk/**'
+      - 'DOWNLOAD_APK.md'
 
 permissions:
   contents: write
@@ -14,6 +19,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
 
       - name: Setup Java 17
         uses: actions/setup-java@v4
@@ -48,11 +55,11 @@ jobs:
         run: |
           mkdir -p apk
           cp build/app/outputs/flutter-apk/app-release.apk apk/retro-games-ar.apk
-          cat > DOWNLOAD_APK.md <<'TXT'
+          cat > DOWNLOAD_APK.md <<TXT
           # تحميل التطبيق
 
           APK:
-          https://github.com/${{ github.repository }}/raw/main/apk/retro-games-ar.apk
+          https://github.com/${{ github.repository }}/raw/${{ github.ref_name }}/apk/retro-games-ar.apk
           TXT
 
       - name: Commit APK
@@ -61,4 +68,4 @@ jobs:
           git config --global user.email "github-actions@github.com"
           git add apk/retro-games-ar.apk DOWNLOAD_APK.md
           git commit -m "Build Retro Games APK" || echo "No changes"
-          git push
+          git push origin HEAD:${{ github.ref_name }}
