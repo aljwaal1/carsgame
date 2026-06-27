@@ -6,6 +6,7 @@ on:
     branches:
       - main
       - chatgpt-v3-real-retro
+      - v4-from-scratch
     paths-ignore:
       - 'apk/**'
       - 'DOWNLOAD_APK.md'
@@ -43,7 +44,7 @@ jobs:
         run: |
           sed -i "s/applicationId = \"com.example.retro_games_ar\"/applicationId = \"com.explapp.retrogamesar\"/g" android/app/build.gradle || true
           sed -i "s/applicationId \"com.example.retro_games_ar\"/applicationId \"com.explapp.retrogamesar\"/g" android/app/build.gradle || true
-          sed -i 's/android:label="retro_games_ar"/android:label="ألعاب زمان"/g' android/app/src/main/AndroidManifest.xml || true
+          sed -i 's/android:label="retro_games_ar"/android:label="ألعاب زمان V4"/g' android/app/src/main/AndroidManifest.xml || true
 
       - name: Analyze
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
