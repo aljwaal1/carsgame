@@ -1,8 +1,11 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import '../../core/graphics/retro_pixels.dart';
 import 'fuel_plane_models.dart';
 
 class FuelPlanePainter extends CustomPainter {
   FuelPlanePainter({required this.planeX, required this.objects, required this.bullets, required this.level});
+
   final double planeX;
   final List<PlaneObject> objects;
   final List<PlaneBullet> bullets;
@@ -12,70 +15,73 @@ class FuelPlanePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final w = size.width;
     final h = size.height;
-    final sky = Paint()..color = const Color(0xff07111f);
-    canvas.drawRect(Offset.zero & size, sky);
+    final bg = Offset.zero & size;
+    canvas.drawRect(bg, Paint()..shader = const LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [Color(0xff061022), Color(0xff0a2e4f), Color(0xff061022)],
+    ).createShader(bg));
 
-    final road = Path()
-      ..moveTo(w * 0.18, 0)
-      ..lineTo(w * 0.82, 0)
-      ..lineTo(w * 0.94, h)
-      ..lineTo(w * 0.06, h)
+    final star = Paint()..color = Colors.white.withOpacity(.55);
+    for (var i = 0; i < 48; i++) {
+      final x = ((i * 73 + level * 17) % w).toDouble();
+      final y = ((i * 41 + level * 13) % (h * .45)).toDouble();
+      canvas.drawRect(Rect.fromLTWH(x, y, i % 6 == 0 ? 3 : 2, i % 6 == 0 ? 3 : 2), star);
+    }
+
+    final river = Path()
+      ..moveTo(w * .22, 0)
+      ..quadraticBezierTo(w * .13, h * .26, w * .28, h * .50)
+      ..quadraticBezierTo(w * .42, h * .72, w * .16, h)
+      ..lineTo(w * .84, h)
+      ..quadraticBezierTo(w * .58, h * .72, w * .72, h * .50)
+      ..quadraticBezierTo(w * .87, h * .26, w * .78, 0)
       ..close();
-    canvas.drawPath(road, Paint()..color = const Color(0xff123148));
-    final edge = Paint()..color = Colors.white24..strokeWidth = 2;
-    canvas.drawLine(Offset(w * 0.18, 0), Offset(w * 0.06, h), edge);
-    canvas.drawLine(Offset(w * 0.82, 0), Offset(w * 0.94, h), edge);
+    canvas.drawPath(river, Paint()..color = const Color(0xff145d87));
+    canvas.drawPath(river, Paint()..style = PaintingStyle.stroke..strokeWidth = 3..color = const Color(0xff7dd3fc).withOpacity(.35));
 
-    final marker = Paint()..color = Colors.white12..strokeWidth = 3;
-    for (int i = 0; i < 8; i++) {
-      final y = ((i * 90 + level * 11) % (h + 100)).toDouble() - 70;
-      canvas.drawLine(Offset(w * 0.50, y), Offset(w * 0.50, y + 34), marker);
+    final bank = Paint()..color = const Color(0xff0f3b1d);
+    for (var i = 0; i < 14; i++) {
+      final y = ((i * 64 + level * 9) % (h + 80)).toDouble() - 40;
+      canvas.drawRect(Rect.fromLTWH(0, y, w * .12, 18), bank);
+      canvas.drawRect(Rect.fromLTWH(w * .88, y + 28, w * .12, 18), bank);
     }
 
     for (final b in bullets) {
-      canvas.drawCircle(Offset(b.x * w, b.y * h), 5, Paint()..color = Colors.yellowAccent);
+      canvas.drawCircle(Offset(b.x * w, b.y * h), 5, Paint()..color = const Color(0xfffff176));
+      canvas.drawCircle(Offset(b.x * w, b.y * h), 11, Paint()..color = const Color(0xfffff176).withOpacity(.16));
     }
 
     for (final o in objects) {
-      final center = Offset(o.x * w, o.y * h);
-      final s = o.size * w;
+      final c = Offset(o.x * w, o.y * h);
+      final p = math.max(2.2, o.size * w / 9);
       if (o.type == PlaneObjectType.fuel) {
-        canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromCenter(center: center, width: s, height: s * 1.25), const Radius.circular(7)), Paint()..color = Colors.greenAccent);
-        canvas.drawRect(Rect.fromCenter(center: center.translate(0, -s * 0.7), width: s * 0.45, height: 5), Paint()..color = Colors.white70);
+        RetroPixels.draw(canvas, c, p, const [
+          '..GG..','..YY..','.YYYY.','.YRR.','.YRR.','.YYYY.','..GG..'
+        ], {'G': const Color(0xff22c55e), 'Y': const Color(0xffffd166), 'R': const Color(0xffef4444)}, shadow: 3);
       } else if (o.type == PlaneObjectType.enemy) {
-        final p = Paint()..color = Colors.orangeAccent;
-        final enemy = Path()
-          ..moveTo(center.dx, center.dy + s * 0.55)
-          ..lineTo(center.dx - s * 0.6, center.dy - s * 0.2)
-          ..lineTo(center.dx, center.dy)
-          ..lineTo(center.dx + s * 0.6, center.dy - s * 0.2)
-          ..close();
-        canvas.drawPath(enemy, p);
+        RetroPixels.draw(canvas, c, p, const [
+          '...R...','..RRR..','.RBRBR.','RRBBB R','..BBB..','.B...B.'
+        ], {'R': const Color(0xffef4444), 'B': const Color(0xff374151)}, shadow: 3);
       } else {
-        canvas.drawCircle(center, s * 0.55, Paint()..color = Colors.redAccent);
-        canvas.drawCircle(center.translate(-s * 0.16, -s * 0.16), s * 0.18, Paint()..color = Colors.black26);
+        RetroPixels.draw(canvas, c, p, const [
+          '..SS..','.SSSS.','SSSSSS','SDSDSS','.SSSS.','..SS..'
+        ], {'S': const Color(0xff94a3b8), 'D': const Color(0xff334155)}, shadow: 3);
       }
     }
 
-    final px = planeX * w;
-    final py = h * 0.82;
-    final body = Paint()..color = Colors.lightBlueAccent;
-    final wings = Paint()..color = Colors.blueAccent;
-    final plane = Path()
-      ..moveTo(px, py - 34)
-      ..lineTo(px - 16, py + 26)
-      ..lineTo(px, py + 12)
-      ..lineTo(px + 16, py + 26)
-      ..close();
-    canvas.drawPath(plane, body);
-    final wingPath = Path()
-      ..moveTo(px - 8, py)
-      ..lineTo(px - 42, py + 16)
-      ..lineTo(px - 8, py + 18)
-      ..moveTo(px + 8, py)
-      ..lineTo(px + 42, py + 16)
-      ..lineTo(px + 8, py + 18);
-    canvas.drawPath(wingPath, wings);
+    final pc = Offset(planeX * w, h * .82);
+    RetroPixels.draw(canvas, pc, math.max(3, w * .012), const [
+      '.....C.....','....CCC....','....YYY....','B..YYYYY..B','BBYYYYYYYBB','..RYYYR..','...Y.Y...','..B...B..'
+    ], {'C': const Color(0xffe0f2fe), 'Y': const Color(0xff38bdf8), 'B': const Color(0xff2563eb), 'R': const Color(0xffef4444)}, shadow: 4);
+
+    final flame = Paint()..color = const Color(0xffff7a18).withOpacity(.75);
+    canvas.drawCircle(Offset(pc.dx, pc.dy + 38), 8 + (level % 3).toDouble(), flame);
+
+    final scan = Paint()..color = Colors.black.withOpacity(.12);
+    for (double y = 0; y < h; y += 5) {
+      canvas.drawRect(Rect.fromLTWH(0, y, w, 1), scan);
+    }
   }
 
   @override
