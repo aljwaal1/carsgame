@@ -54,6 +54,12 @@ class _FuelPlaneScreenState extends State<FuelPlaneScreen> {
     setState(() {});
   }
 
+  void _setSlider(double value) {
+    if (!engine.running) return;
+    engine.planeX = value.clamp(0.08, 0.92).toDouble();
+    setState(() {});
+  }
+
   @override
   void dispose() {
     timer?.cancel();
@@ -98,11 +104,11 @@ class _FuelPlaneScreenState extends State<FuelPlaneScreen> {
                       child: IgnorePointer(
                         child: AnimatedOpacity(
                           duration: const Duration(milliseconds: 250),
-                          opacity: engine.running ? 0.72 : 0,
+                          opacity: engine.running ? 0.55 : 0,
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            decoration: BoxDecoration(color: Colors.black.withOpacity(0.38), borderRadius: BorderRadius.circular(16)),
-                            child: const Text('اسحب الطائرة يمينًا ويسارًا — الإطلاق تلقائي', textAlign: TextAlign.center, style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold)),
+                            decoration: BoxDecoration(color: Colors.black.withOpacity(0.34), borderRadius: BorderRadius.circular(16)),
+                            child: const Text('اسحب الطائرة أو استخدم شريط التحكم بالأسفل — الإطلاق تلقائي', textAlign: TextAlign.center, style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold)),
                           ),
                         ),
                       ),
@@ -111,7 +117,7 @@ class _FuelPlaneScreenState extends State<FuelPlaneScreen> {
                       Center(child: Container(padding: const EdgeInsets.all(22), decoration: BoxDecoration(color: Colors.black.withOpacity(0.62), borderRadius: BorderRadius.circular(22)), child: Column(mainAxisSize: MainAxisSize.min, children: [
                         Text(engine.gameOver ? 'انتهت الجولة' : 'جاهز للطيران؟', style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900)),
                         const SizedBox(height: 8),
-                        Text(engine.gameOver ? 'نقاطك: ${engine.score}' : 'اسحب الطائرة، والنار تعمل تلقائيًا', style: const TextStyle(color: Colors.white70)),
+                        Text(engine.gameOver ? 'نقاطك: ${engine.score}' : 'حرّك الشريط بالأسفل، والنار تعمل تلقائيًا', style: const TextStyle(color: Colors.white70)),
                         const SizedBox(height: 16),
                         RetroButton(text: engine.gameOver ? 'إعادة اللعب' : 'ابدأ', icon: Icons.play_arrow, onTap: start),
                       ]))),
@@ -120,13 +126,43 @@ class _FuelPlaneScreenState extends State<FuelPlaneScreen> {
               }),
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-            child: Text(
-              engine.running ? 'تحكم بالسحب فقط — لا تحتاج أزرار' : 'اضغط ابدأ ثم اسحب الطائرة بإصبعك مثل ألعاب الدجاجة',
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.white70, fontWeight: FontWeight.bold),
+          Container(
+            margin: const EdgeInsets.fromLTRB(14, 10, 14, 12),
+            padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.24),
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(color: Colors.white12),
             ),
+            child: Column(children: [
+              Row(children: [
+                const Icon(Icons.mouse, size: 20, color: Colors.white70),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    engine.running ? 'حرّك المقبض مثل الماوس' : 'اضغط ابدأ ثم استخدم شريط التحكم',
+                    style: const TextStyle(color: Colors.white70, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ]),
+              SliderTheme(
+                data: SliderTheme.of(context).copyWith(
+                  trackHeight: 12,
+                  thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 18),
+                  overlayShape: const RoundSliderOverlayShape(overlayRadius: 26),
+                  activeTrackColor: Colors.lightBlueAccent,
+                  inactiveTrackColor: Colors.white24,
+                  thumbColor: Colors.white,
+                  overlayColor: Colors.lightBlueAccent.withOpacity(0.18),
+                ),
+                child: Slider(
+                  value: engine.planeX.clamp(0.08, 0.92),
+                  min: 0.08,
+                  max: 0.92,
+                  onChanged: engine.running ? _setSlider : null,
+                ),
+              ),
+            ]),
           ),
         ]),
       ),
