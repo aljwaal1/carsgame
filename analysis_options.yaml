@@ -1,0 +1,4 @@
+analyzer:
+  errors:
+    unused_import: ignore
+    deprecated_member_use: ignore
