@@ -145,7 +145,7 @@ class PixelArt {
 class PlaneObj {
   PlaneObj({required this.x, required this.y, required this.kind, required this.size});
   double x, y, size;
-  int kind; // 0 fuel, 1 rock, 2 enemy
+  int kind;
 }
 
 class Bullet {
@@ -613,7 +613,8 @@ class RoadV4Painter extends CustomPainter {
   }
 
   void _lanes(Canvas c, Size s) {
-    final p=Paint()..color=Colors.white.withOpacity(weather=='ضباب'?.30:.72);
+    final laneOpacity = weather == 'ضباب' ? .30 : .72;
+    final p = Paint()..color = Colors.white.withOpacity(laneOpacity);
     for(var i=0;i<11;i++){
       final y=((i*78+tick*4)%(s.height+110)).toDouble()-55;
       if(y<s.height*.38)continue;
