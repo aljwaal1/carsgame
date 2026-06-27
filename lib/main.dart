@@ -16,7 +16,7 @@ class RetroV4App extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'ألعاب زمان V4',
+      title: 'ألعاب زمان V4.1',
       theme: ThemeData.dark(useMaterial3: true).copyWith(
         scaffoldBackgroundColor: const Color(0xff07111f),
         appBarTheme: const AppBarTheme(centerTitle: true, backgroundColor: Color(0xff0b1220)),
@@ -64,15 +64,15 @@ class HomeV4 extends StatelessWidget {
             padding: const EdgeInsets.all(18),
             child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
               const SizedBox(height: 8),
-              const Text('ألعاب زمان V4', textAlign: TextAlign.center, style: TextStyle(fontSize: 34, fontWeight: FontWeight.w900)),
+              const Text('ألعاب زمان V4.1', textAlign: TextAlign.center, style: TextStyle(fontSize: 34, fontWeight: FontWeight.w900)),
               const SizedBox(height: 6),
-              const Text('إعادة بناء من الصفر: أبطأ، أوضح، ونقاط منطقية', textAlign: TextAlign.center, style: TextStyle(color: Colors.white70)),
+              const Text('السيارات الآن بمنطق سباق تحمّل: أنت تلحق وتتجاوز', textAlign: TextAlign.center, style: TextStyle(color: Colors.white70)),
               const SizedBox(height: 28),
               GameTile(title: 'طائرة الوقود', icon: '✈️', text: 'إطلاق تلقائي، تحكم بالسحب أو الشريط، وقود وعوائق واضحة.', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const Directionality(textDirection: TextDirection.rtl, child: PlaneV4Screen())))),
               const SizedBox(height: 16),
-              GameTile(title: 'طريق التحمل', icon: '🏎️', text: 'سباق أهدأ، منظور طريق أفضل، نقاط للتجاوز والمراحل.', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const Directionality(textDirection: TextDirection.rtl, child: RoadV4Screen())))),
+              GameTile(title: 'طريق التحمل', icon: '🏎️', text: 'أنت تمشي للأمام، تلحق السيارات وتتجاوزها، مع ليل وطقس ومراحل.', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const Directionality(textDirection: TextDirection.rtl, child: RoadV4Screen())))),
               const Spacer(),
-              const Text('هذه نسخة أصلية بروح الألعاب القديمة، وليست نسخة حرفية من لعبة محمية.', textAlign: TextAlign.center, style: TextStyle(color: Colors.white38, fontSize: 12)),
+              const Text('نسخة أصلية بروح ألعاب التحمل القديمة، وليست نسخة حرفية من لعبة محمية.', textAlign: TextAlign.center, style: TextStyle(color: Colors.white38, fontSize: 12)),
             ]),
           ),
         ),
@@ -419,10 +419,12 @@ class PlaneV4Painter extends CustomPainter {
   bool shouldRepaint(covariant PlaneV4Painter oldDelegate) => true;
 }
 
-class RoadCarV4 {
-  RoadCarV4({required this.x, required this.y, required this.lane, required this.speed});
-  double x, y, speed;
+class RoadOpponent {
+  RoadOpponent({required this.lane, required this.depth, required this.color, required this.speedBias});
   int lane;
+  double depth;
+  Color color;
+  double speedBias;
 }
 
 class RoadV4Screen extends StatefulWidget {
@@ -434,19 +436,20 @@ class RoadV4Screen extends StatefulWidget {
 class _RoadV4ScreenState extends State<RoadV4Screen> {
   final rnd = math.Random();
   Timer? timer;
-  double playerX = .5;
+  int playerLane = 2;
   int score = 0;
   int distance = 0;
   int passed = 0;
-  int stage = 1;
+  int target = 40;
+  int day = 1;
   int tick = 0;
   bool running = false;
   bool gameOver = false;
-  final cars = <RoadCarV4>[];
-  final lanes = [.28, .40, .52, .64, .76];
+  final opponents = <RoadOpponent>[];
+  final carColors = const [Color(0xffef4444), Color(0xffffd166), Color(0xff22c55e), Color(0xffa78bfa), Color(0xfff97316)];
 
   String get weather {
-    final p = (passed % 36) / 36;
+    final p = (passed % target) / target;
     if (p < .18) return 'نهار';
     if (p < .34) return 'غروب';
     if (p < .52) return 'ليل';
@@ -457,15 +460,16 @@ class _RoadV4ScreenState extends State<RoadV4Screen> {
 
   void start() {
     timer?.cancel();
-    playerX = .5;
+    playerLane = 2;
     score = 0;
     distance = 0;
     passed = 0;
-    stage = 1;
+    target = 40;
+    day = 1;
     tick = 0;
     running = true;
     gameOver = false;
-    cars.clear();
+    opponents.clear();
     Sfx.start();
     timer = Timer.periodic(const Duration(milliseconds: 33), (_) => step());
     setState(() {});
@@ -475,40 +479,64 @@ class _RoadV4ScreenState extends State<RoadV4Screen> {
     if (!running) return;
     tick++;
     distance++;
-    if (tick % 10 == 0) score += 1;
-    final speed = math.min(.017, .0055 + stage * .00055 + distance / 250000);
-    if (rnd.nextDouble() < (.014 + stage * .0014).clamp(.014, .027)) {
-      final lane = rnd.nextInt(lanes.length);
-      cars.add(RoadCarV4(x: lanes[lane] + (rnd.nextDouble() - .5) * .018, y: -.12, lane: lane, speed: .72 + rnd.nextDouble() * .32));
-    }
-    for (final c in cars) c.y += speed * c.speed;
-    final before = cars.length;
-    cars.removeWhere((c) => c.y > 1.12);
-    final removed = before - cars.length;
-    if (removed > 0) {
-      passed += removed;
-      score += removed * 100;
-      Sfx.pass();
-      if (passed > 0 && passed % 36 == 0) {
-        stage++;
-        score += 700;
-        cars.clear();
-        Sfx.stage();
+    if (tick % 12 == 0) score += 1;
+
+    final roadSpeed = math.min(.0135, .0048 + day * .00055 + distance / 260000);
+    final spawnChance = (.010 + day * .0012).clamp(.010, .024);
+    if (rnd.nextDouble() < spawnChance && opponents.length < 5) {
+      final lane = rnd.nextInt(5);
+      final tooClose = opponents.any((o) => o.lane == lane && o.depth < .22);
+      if (!tooClose) {
+        opponents.add(RoadOpponent(
+          lane: lane,
+          depth: .045,
+          color: carColors[rnd.nextInt(carColors.length)],
+          speedBias: .82 + rnd.nextDouble() * .28,
+        ));
       }
     }
-    for (final c in cars) {
-      if ((playerX - c.x).abs() < .050 && (.84 - c.y).abs() < .065) {
+
+    for (final o in opponents) {
+      o.depth += roadSpeed * o.speedBias;
+    }
+
+    final passedNow = opponents.where((o) => o.depth > 1.08).length;
+    if (passedNow > 0) {
+      passed += passedNow;
+      score += passedNow * 100;
+      Sfx.pass();
+      opponents.removeWhere((o) => o.depth > 1.08);
+    }
+
+    if (passed >= target) {
+      day++;
+      passed = 0;
+      target = math.min(90, target + 12);
+      score += 800;
+      opponents.clear();
+      Sfx.stage();
+    }
+
+    for (final o in opponents) {
+      if (o.depth > .78 && o.depth < .96 && o.lane == playerLane) {
         running = false;
         gameOver = true;
         Sfx.over();
       }
     }
+
     if (mounted) setState(() {});
   }
 
-  void move(double dx) {
+  void moveLeft() {
     if (!running) return;
-    playerX = (playerX + dx).clamp(.16, .84).toDouble();
+    playerLane = math.max(0, playerLane - 1);
+    setState(() {});
+  }
+
+  void moveRight() {
+    if (!running) return;
+    playerLane = math.min(4, playerLane + 1);
     setState(() {});
   }
 
@@ -517,136 +545,211 @@ class _RoadV4ScreenState extends State<RoadV4Screen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('طريق التحمل V4')),
+    appBar: AppBar(title: const Text('طريق التحمل V4.1')),
     body: SafeArea(child: Column(children: [
-      Padding(padding: const EdgeInsets.all(12), child: Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
-        Text('النقاط: $score', style: const TextStyle(fontWeight: FontWeight.w900)),
-        Text('تجاوز: $passed'),
-        Text('الجو: $weather'),
+      Padding(padding: const EdgeInsets.fromLTRB(12, 8, 12, 8), child: Column(children: [
+        Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
+          Text('النقاط: $score', style: const TextStyle(fontWeight: FontWeight.w900)),
+          Text('اليوم: $day'),
+          Text('تجاوز: $passed / $target'),
+        ]),
+        const SizedBox(height: 7),
+        ClipRRect(borderRadius: BorderRadius.circular(20), child: LinearProgressIndicator(value: (passed / target).clamp(0, 1), minHeight: 10, backgroundColor: Colors.white12)),
       ])),
       Expanded(child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 12),
         clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(borderRadius: BorderRadius.circular(22), border: Border.all(color: Colors.white12)),
         child: Stack(children: [
-          CustomPaint(painter: RoadV4Painter(playerX: playerX, cars: cars, weather: weather, tick: tick, score: score), child: const SizedBox.expand()),
-          if (!running) Center(child: _StartCard(title: gameOver ? 'حادث!' : 'طريق التحمل', subtitle: gameOver ? 'النقاط: $score' : 'تجاوز السيارات وأنهِ المراحل بهدوء', onTap: start)),
+          CustomPaint(painter: RoadEnduroPainter(playerLane: playerLane, opponents: opponents, weather: weather, tick: tick, day: day), child: const SizedBox.expand()),
+          Positioned(top: 10, left: 12, child: Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), decoration: BoxDecoration(color: Colors.black.withOpacity(.35), borderRadius: BorderRadius.circular(14)), child: Text(weather, style: const TextStyle(fontWeight: FontWeight.bold)))),
+          if (!running) Center(child: _StartCard(title: gameOver ? 'حادث!' : 'طريق التحمل', subtitle: gameOver ? 'النقاط: $score' : 'أنت تلحق السيارات أمامك وتتجاوزها. الهدف: $target سيارة', onTap: start)),
         ]),
       )),
       Padding(padding: const EdgeInsets.fromLTRB(14, 10, 14, 12), child: Row(children: [
-        Expanded(child: RetroButton(text: 'يسار', icon: Icons.keyboard_arrow_right, onTap: () => move(-.045))),
+        Expanded(child: RetroButton(text: 'يسار', icon: Icons.keyboard_arrow_right, onTap: moveLeft)),
         const SizedBox(width: 12),
-        Expanded(child: RetroButton(text: 'يمين', icon: Icons.keyboard_arrow_left, onTap: () => move(.045))),
+        Expanded(child: RetroButton(text: 'يمين', icon: Icons.keyboard_arrow_left, onTap: moveRight)),
       ])),
     ])),
   );
 }
 
-class RoadV4Painter extends CustomPainter {
-  RoadV4Painter({required this.playerX, required this.cars, required this.weather, required this.tick, required this.score});
-  final double playerX;
-  final List<RoadCarV4> cars;
+class RoadEnduroPainter extends CustomPainter {
+  RoadEnduroPainter({required this.playerLane, required this.opponents, required this.weather, required this.tick, required this.day});
+  final int playerLane;
+  final List<RoadOpponent> opponents;
   final String weather;
-  final int tick, score;
+  final int tick;
+  final int day;
+
+  double _ease(double d) => math.pow(d.clamp(0.0, 1.0), 1.18).toDouble();
+  double _y(Size s, double depth) => s.height * (.40 + .62 * _ease(depth));
+  double _roadWidth(Size s, double depth) => s.width * (.12 + .86 * _ease(depth));
+  double _laneX(Size s, int lane, double depth) {
+    final center = s.width * .5;
+    final width = _roadWidth(s, depth);
+    final left = center - width / 2;
+    return left + width * ((lane + .5) / 5.0);
+  }
 
   @override
   void paint(Canvas c, Size s) {
-    final w = s.width, h = s.height;
-    final colors = _sky();
-    c.drawRect(Offset.zero & s, Paint()..shader = LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: colors).createShader(Offset.zero & s));
-    _sun(c, s);
-    _mountains(c, s);
+    _sky(c, s);
+    _horizon(c, s);
     _road(c, s);
-    _posts(c, s);
-    _lanes(c, s);
-    for (final car in cars) _car(c, Offset(car.x * w, car.y * h), math.max(2.6, w * (.006 + car.y.clamp(0, 1) * .015)), true, car.lane);
-    final pc = Offset(playerX * w, h * .84);
-    if (weather == 'ليل' || weather == 'ضباب' || weather == 'مطر') _lights(c, s, pc);
-    _car(c, pc, math.max(5.4, w * .018), false, 0);
+    _roadMotion(c, s);
+    _sidePosts(c, s);
+    final sorted = List<RoadOpponent>.from(opponents)..sort((a, b) => a.depth.compareTo(b.depth));
+    for (final o in sorted) _opponentCar(c, s, o);
+    _playerCar(c, s);
     _weather(c, s);
     _scan(c, s);
   }
 
-  List<Color> _sky() {
+  void _sky(Canvas c, Size s) {
+    List<Color> colors;
     switch (weather) {
-      case 'غروب': return const [Color(0xff301150), Color(0xffe11d48), Color(0xfff59e0b)];
-      case 'ليل': return const [Color(0xff020617), Color(0xff111827), Color(0xff172033)];
-      case 'ضباب': return const [Color(0xff64748b), Color(0xffa8b3c4), Color(0xffdbe2eb)];
-      case 'ثلج': return const [Color(0xff93c5fd), Color(0xffdbeafe), Color(0xffffffff)];
-      case 'مطر': return const [Color(0xff0f172a), Color(0xff334155), Color(0xff475569)];
-      default: return const [Color(0xff0ea5e9), Color(0xff67e8f9), Color(0xff86efac)];
+      case 'غروب': colors = const [Color(0xff35104f), Color(0xffe11d48), Color(0xfff59e0b)]; break;
+      case 'ليل': colors = const [Color(0xff020617), Color(0xff0f172a), Color(0xff1e293b)]; break;
+      case 'ضباب': colors = const [Color(0xff64748b), Color(0xffa8b3c4), Color(0xffdbe2eb)]; break;
+      case 'ثلج': colors = const [Color(0xff93c5fd), Color(0xffdbeafe), Color(0xffffffff)]; break;
+      case 'مطر': colors = const [Color(0xff0f172a), Color(0xff334155), Color(0xff475569)]; break;
+      default: colors = const [Color(0xff0ea5e9), Color(0xff67e8f9), Color(0xff86efac)];
+    }
+    c.drawRect(Offset.zero & s, Paint()..shader = LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: colors).createShader(Offset.zero & s));
+    if (weather == 'ليل') {
+      c.drawCircle(Offset(s.width * .78, s.height * .13), 22, Paint()..color = Colors.white70);
+      for (var i = 0; i < 18; i++) c.drawCircle(Offset((i * 53 % s.width).toDouble(), (18 + i * 19 % (s.height * .22)).toDouble()), 1.4, Paint()..color = Colors.white54);
+    } else {
+      c.drawCircle(Offset(s.width * .76, s.height * .17), 30, Paint()..color = const Color(0xfffff3b0));
     }
   }
 
-  void _sun(Canvas c, Size s) {
-    if (weather == 'ليل') c.drawCircle(Offset(s.width * .78, s.height * .12), 23, Paint()..color = Colors.white70);
-    if (weather == 'غروب' || weather == 'نهار') c.drawCircle(Offset(s.width * .72, s.height * .17), 30, Paint()..color = const Color(0xfffff3b0));
-  }
-
-  void _mountains(Canvas c, Size s) {
-    final p = Paint()..color = weather == 'ليل' ? const Color(0xff0b1220) : const Color(0xff1d4ed8).withOpacity(.28);
-    final path = Path()..moveTo(0, s.height*.36)..lineTo(s.width*.18, s.height*.24)..lineTo(s.width*.35, s.height*.36)..lineTo(s.width*.52, s.height*.22)..lineTo(s.width*.72, s.height*.37)..lineTo(s.width, s.height*.26)..lineTo(s.width, s.height*.47)..lineTo(0, s.height*.47)..close();
-    c.drawPath(path, p);
-    final ground = weather == 'ثلج' ? const Color(0xfff8fafc) : const Color(0xff166534);
-    c.drawRect(Rect.fromLTWH(0, s.height*.40, s.width, s.height*.60), Paint()..color = weather == 'مطر' ? const Color(0xff1e3a2f) : ground);
+  void _horizon(Canvas c, Size s) {
+    final mountain = Path()
+      ..moveTo(0, s.height * .36)
+      ..lineTo(s.width * .18, s.height * .25)
+      ..lineTo(s.width * .35, s.height * .36)
+      ..lineTo(s.width * .55, s.height * .23)
+      ..lineTo(s.width * .78, s.height * .36)
+      ..lineTo(s.width, s.height * .27)
+      ..lineTo(s.width, s.height * .44)
+      ..lineTo(0, s.height * .44)
+      ..close();
+    c.drawPath(mountain, Paint()..color = weather == 'ليل' ? const Color(0xff0b1220) : const Color(0xff2563eb).withOpacity(.24));
+    final ground = weather == 'ثلج' ? const Color(0xfff8fafc) : weather == 'مطر' ? const Color(0xff14532d) : const Color(0xff16a34a);
+    c.drawRect(Rect.fromLTWH(0, s.height * .40, s.width, s.height * .60), Paint()..color = ground);
   }
 
   void _road(Canvas c, Size s) {
-    final w=s.width,h=s.height;
-    final road = Path()..moveTo(w*.46,h*.37)..lineTo(w*.54,h*.37)..lineTo(w*.96,h)..lineTo(w*.04,h)..close();
-    c.drawPath(road, Paint()..shader = const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xff111827), Color(0xff1f2937), Color(0xff020617)]).createShader(Rect.fromLTWH(0,h*.37,w,h*.63)));
-    c.drawPath(road, Paint()..style=PaintingStyle.stroke..strokeWidth=5..color=Colors.white.withOpacity(.35));
+    final road = Path()
+      ..moveTo(s.width * .46, s.height * .40)
+      ..lineTo(s.width * .54, s.height * .40)
+      ..lineTo(s.width * .98, s.height)
+      ..lineTo(s.width * .02, s.height)
+      ..close();
+    c.drawPath(road, Paint()..shader = const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xff374151), Color(0xff111827), Color(0xff020617)]).createShader(Rect.fromLTWH(0, s.height * .40, s.width, s.height * .60)));
+    c.drawPath(road, Paint()..style = PaintingStyle.stroke..strokeWidth = 4..color = Colors.white.withOpacity(.35));
   }
 
-  void _posts(Canvas c, Size s) {
-    for (var i=0;i<10;i++) {
-      final y=((i*72+tick*3)%(s.height+110)).toDouble()-55;
-      if (y<s.height*.38) continue;
-      final t=(y/s.height).clamp(0.0,1.0);
-      final lx=s.width*(.43-.37*t), rx=s.width*(.57+.37*t);
-      _post(c,Offset(lx,y),4+t*7); _post(c,Offset(rx,y+26),4+t*7);
+  void _roadMotion(Canvas c, Size s) {
+    final paint = Paint()..color = Colors.white.withOpacity(weather == 'ضباب' ? .28 : .68);
+    for (var i = 0; i < 16; i++) {
+      final raw = ((i * 64 + tick * 5) % 760) / 760.0;
+      final d = raw.clamp(.02, .98);
+      final y = _y(s, d);
+      final h = 10 + d * 42;
+      final w = 2 + d * 7;
+      c.drawRRect(RRect.fromRectAndRadius(Rect.fromCenter(center: Offset(s.width * .5, y), width: w, height: h), const Radius.circular(4)), paint);
     }
   }
+
+  void _sidePosts(Canvas c, Size s) {
+    for (var i = 0; i < 12; i++) {
+      final d = (((i * 77 + tick * 4) % 820) / 820.0).clamp(.05, .99);
+      final y = _y(s, d);
+      final rw = _roadWidth(s, d);
+      final left = s.width * .5 - rw / 2 - 10 * d;
+      final right = s.width * .5 + rw / 2 + 10 * d;
+      final size = 3 + d * 8;
+      _post(c, Offset(left, y), size);
+      _post(c, Offset(right, y + 20 * d), size);
+    }
+  }
+
   void _post(Canvas c, Offset o, double size) {
-    c.drawRect(Rect.fromCenter(center:o,width:size,height:size*3),Paint()..color=Colors.white70);
-    c.drawRect(Rect.fromCenter(center:o.translate(0,-size),width:size*1.4,height:size*.7),Paint()..color=Colors.redAccent);
+    c.drawRect(Rect.fromCenter(center: o, width: size, height: size * 3.2), Paint()..color = Colors.white70);
+    c.drawRect(Rect.fromCenter(center: o.translate(0, -size), width: size * 1.4, height: size * .7), Paint()..color = Colors.redAccent);
   }
 
-  void _lanes(Canvas c, Size s) {
-    final laneOpacity = weather == 'ضباب' ? .30 : .72;
-    final p = Paint()..color = Colors.white.withOpacity(laneOpacity);
-    for(var i=0;i<11;i++){
-      final y=((i*78+tick*4)%(s.height+110)).toDouble()-55;
-      if(y<s.height*.38)continue;
-      final t=(y/s.height).clamp(0.0,1.0);
-      c.drawRRect(RRect.fromRectAndRadius(Rect.fromCenter(center:Offset(s.width*.5,y),width:3+t*7,height:16+t*48),const Radius.circular(4)),p);
+  void _opponentCar(Canvas c, Size s, RoadOpponent o) {
+    final x = _laneX(s, o.lane, o.depth);
+    final y = _y(s, o.depth);
+    final scale = .25 + o.depth * 1.15;
+    _drawCar(c, Offset(x, y), s.width * .060 * scale, o.color, true, depth: o.depth);
+  }
+
+  void _playerCar(Canvas c, Size s) {
+    final x = _laneX(s, playerLane, .88);
+    final y = s.height * .84;
+    if (weather == 'ليل' || weather == 'ضباب' || weather == 'مطر') {
+      final light = Path()
+        ..moveTo(x - 18, y - 18)
+        ..lineTo(x - s.width * .18, y - s.height * .28)
+        ..lineTo(x + s.width * .18, y - s.height * .28)
+        ..lineTo(x + 18, y - 18)
+        ..close();
+      c.drawPath(light, Paint()..color = const Color(0xfffff3b0).withOpacity(.16));
     }
+    _drawCar(c, Offset(x, y), s.width * .085, const Color(0xff38bdf8), false, depth: .95);
   }
 
-  void _lights(Canvas c, Size s, Offset pc){
-    final path=Path()..moveTo(pc.dx-22,pc.dy-12)..lineTo(pc.dx-s.width*.23,pc.dy-s.height*.37)..lineTo(pc.dx+s.width*.23,pc.dy-s.height*.37)..lineTo(pc.dx+22,pc.dy-12)..close();
-    c.drawPath(path,Paint()..color=const Color(0xfffff3b0).withOpacity(.16));
+  void _drawCar(Canvas c, Offset center, double width, Color body, bool opponent, {required double depth}) {
+    final height = width * 1.45;
+    final shadow = RRect.fromRectAndRadius(Rect.fromCenter(center: center.translate(0, height * .13), width: width * 1.08, height: height * .90), Radius.circular(width * .18));
+    c.drawRRect(shadow, Paint()..color = Colors.black.withOpacity(.28));
+
+    final bodyRect = RRect.fromRectAndRadius(Rect.fromCenter(center: center, width: width, height: height), Radius.circular(width * .16));
+    c.drawRRect(bodyRect, Paint()..color = body);
+    c.drawRRect(bodyRect, Paint()..style = PaintingStyle.stroke..strokeWidth = math.max(1, width * .045)..color = Colors.white.withOpacity(.55));
+
+    final cabin = RRect.fromRectAndRadius(Rect.fromCenter(center: center.translate(0, -height * .18), width: width * .54, height: height * .30), Radius.circular(width * .08));
+    c.drawRRect(cabin, Paint()..color = const Color(0xffdbeafe));
+    c.drawRRect(cabin, Paint()..style = PaintingStyle.stroke..strokeWidth = 1..color = const Color(0xff0f172a).withOpacity(.5));
+
+    final wheelPaint = Paint()..color = const Color(0xff020617);
+    c.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(center.dx - width * .58, center.dy - height * .18, width * .18, height * .36), Radius.circular(width * .05)), wheelPaint);
+    c.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(center.dx + width * .40, center.dy - height * .18, width * .18, height * .36), Radius.circular(width * .05)), wheelPaint);
+    c.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(center.dx - width * .58, center.dy + height * .20, width * .18, height * .28), Radius.circular(width * .05)), wheelPaint);
+    c.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(center.dx + width * .40, center.dy + height * .20, width * .18, height * .28), Radius.circular(width * .05)), wheelPaint);
+
+    final lamp = Paint()..color = opponent ? const Color(0xfffff176) : const Color(0xffef4444);
+    c.drawRect(Rect.fromLTWH(center.dx - width * .32, center.dy + height * .38, width * .18, height * .07), lamp);
+    c.drawRect(Rect.fromLTWH(center.dx + width * .14, center.dy + height * .38, width * .18, height * .07), lamp);
   }
 
-  void _car(Canvas c, Offset center, double px, bool enemy, int lane){
-    final palette=[const Color(0xffef4444),const Color(0xffffd166),const Color(0xff22c55e),const Color(0xffa78bfa),const Color(0xfff97316)];
-    final body=enemy?palette[lane%palette.length]:const Color(0xff38bdf8);
-    PixelArt.draw(c, center, px, const ['...WW...','..WBBW..','.WBBBBW.','RBBBBBBR','BBBBBBBB','KBBBBBBK','KBB..BBK','.BB..BB.'], {'W':const Color(0xffe0f2fe),'B':body,'R':enemy?const Color(0xfffff176):const Color(0xffef4444),'K':const Color(0xff020617)}, shadow:4);
-  }
-
-  void _weather(Canvas c, Size s){
-    if(weather=='ضباب') c.drawRect(Offset.zero&s,Paint()..color=Colors.white.withOpacity(.30));
-    if(weather=='ليل') c.drawRect(Offset.zero&s,Paint()..color=Colors.black.withOpacity(.18));
-    if(weather=='مطر'||weather=='ثلج'){
-      for(var i=0;i<90;i++){
-        final x=((i*61+tick*2)%s.width).toDouble(); final y=((i*47+tick*5)%s.height).toDouble();
-        if(weather=='مطر') c.drawLine(Offset(x,y),Offset(x-6,y+18),Paint()..color=const Color(0xff93c5fd).withOpacity(.7)..strokeWidth=1.5);
-        else c.drawCircle(Offset(x,y),i%3==0?2.4:1.4,Paint()..color=Colors.white.withOpacity(.9));
+  void _weather(Canvas c, Size s) {
+    if (weather == 'ضباب') c.drawRect(Offset.zero & s, Paint()..color = Colors.white.withOpacity(.28));
+    if (weather == 'ليل') c.drawRect(Offset.zero & s, Paint()..color = Colors.black.withOpacity(.12));
+    if (weather == 'مطر' || weather == 'ثلج') {
+      for (var i = 0; i < 90; i++) {
+        final x = ((i * 61 + tick * 2) % s.width).toDouble();
+        final y = ((i * 47 + tick * 5) % s.height).toDouble();
+        if (weather == 'مطر') {
+          c.drawLine(Offset(x, y), Offset(x - 6, y + 18), Paint()..color = const Color(0xff93c5fd).withOpacity(.70)..strokeWidth = 1.5);
+        } else {
+          c.drawCircle(Offset(x, y), i % 3 == 0 ? 2.4 : 1.4, Paint()..color = Colors.white.withOpacity(.90));
+        }
       }
     }
   }
 
-  void _scan(Canvas c, Size s){ final p=Paint()..color=Colors.black.withOpacity(.10); for(double y=0;y<s.height;y+=5){c.drawRect(Rect.fromLTWH(0,y,s.width,1),p);} }
+  void _scan(Canvas c, Size s) {
+    final p = Paint()..color = Colors.black.withOpacity(.08);
+    for (double y = 0; y < s.height; y += 5) c.drawRect(Rect.fromLTWH(0, y, s.width, 1), p);
+  }
+
   @override
-  bool shouldRepaint(covariant RoadV4Painter oldDelegate)=>true;
+  bool shouldRepaint(covariant RoadEnduroPainter oldDelegate) => true;
 }
