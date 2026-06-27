@@ -8,8 +8,10 @@ class FuelPlaneEngine {
   double fuel = FuelPlaneConfig.initialFuel;
   double speed = FuelPlaneConfig.initialSpeed;
   int score = 0;
+  int distance = 0;
   int level = 1;
   int _fireCooldown = 0;
+  int _scoreTick = 0;
   bool running = false;
   bool gameOver = false;
   final objects = <PlaneObject>[];
@@ -20,8 +22,10 @@ class FuelPlaneEngine {
     fuel = FuelPlaneConfig.initialFuel;
     speed = FuelPlaneConfig.initialSpeed;
     score = 0;
+    distance = 0;
     level = 1;
     _fireCooldown = 0;
+    _scoreTick = 0;
     running = true;
     gameOver = false;
     objects.clear();
@@ -41,28 +45,35 @@ class FuelPlaneEngine {
   PlaneEvent tick() {
     if (!running) return PlaneEvent.none;
     var event = PlaneEvent.none;
-    score++;
+
+    distance++;
+    _scoreTick++;
+    if (_scoreTick >= 12) {
+      score += FuelPlaneConfig.pointsPerDistanceTick;
+      _scoreTick = 0;
+    }
+
     fuel -= FuelPlaneConfig.fuelDrain;
-    level = 1 + score ~/ 900;
-    speed = min(FuelPlaneConfig.maxSpeed, FuelPlaneConfig.initialSpeed + level * 0.0016);
+    level = 1 + distance ~/ 1500;
+    speed = min(FuelPlaneConfig.maxSpeed, FuelPlaneConfig.initialSpeed + level * 0.0009);
 
     if (_fireCooldown <= 0) {
       fire();
-      _fireCooldown = max(5, 10 - min(5, level ~/ 2));
+      _fireCooldown = max(7, 14 - min(5, level ~/ 2));
       event = PlaneEvent.shoot;
     } else {
       _fireCooldown--;
     }
 
-    final spawnChance = 0.028 + min(0.025, level * 0.003);
+    final spawnChance = 0.018 + min(0.018, level * 0.002);
     if (random.nextDouble() < spawnChance) {
       final roll = random.nextDouble();
-      final type = roll < 0.23 ? PlaneObjectType.fuel : roll < 0.78 ? PlaneObjectType.rock : PlaneObjectType.enemy;
+      final type = roll < 0.25 ? PlaneObjectType.fuel : roll < 0.78 ? PlaneObjectType.rock : PlaneObjectType.enemy;
       objects.add(PlaneObject(x: 0.12 + random.nextDouble() * 0.76, y: -0.08, size: type == PlaneObjectType.fuel ? 0.052 : 0.066, type: type));
     }
 
     for (final obj in objects) { obj.y += speed; }
-    for (final b in bullets) { b.y -= 0.048; }
+    for (final b in bullets) { b.y -= 0.040; }
     objects.removeWhere((o) => o.y > 1.12);
     bullets.removeWhere((b) => b.y < -0.08);
 
@@ -79,7 +90,10 @@ class FuelPlaneEngine {
     for (final b in bullets) {
       for (final o in objects) {
         if (o.type != PlaneObjectType.fuel && (b.x - o.x).abs() < o.size && (b.y - o.y).abs() < o.size) {
-          hitObjects.add(o); hitBullets.add(b); score += 60; current = PlaneEvent.hit;
+          hitObjects.add(o);
+          hitBullets.add(b);
+          score += FuelPlaneConfig.pointsPerHit;
+          current = PlaneEvent.hit;
           break;
         }
       }
@@ -94,7 +108,7 @@ class FuelPlaneEngine {
       if ((planeX - o.x).abs() < o.size * 0.92 && (FuelPlaneConfig.planeY - o.y).abs() < o.size * 0.92) {
         if (o.type == PlaneObjectType.fuel) {
           fuel = min(100, fuel + FuelPlaneConfig.fuelGain);
-          score += 100;
+          score += FuelPlaneConfig.pointsPerFuel;
           objects.remove(o);
           current = PlaneEvent.fuel;
         } else {
