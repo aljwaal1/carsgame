@@ -22,6 +22,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ github.ref_name }}
+          fetch-depth: 0
 
       - name: Setup Java 17
         uses: actions/setup-java@v4
@@ -67,6 +68,7 @@ jobs:
         run: |
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"
+          git pull --rebase --autostash origin ${{ github.ref_name }}
           git add apk/retro-games-ar.apk DOWNLOAD_APK.md
           git commit -m "Build Retro Games APK" || echo "No changes"
           git push origin HEAD:${{ github.ref_name }}
