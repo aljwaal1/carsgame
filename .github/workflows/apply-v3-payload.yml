@@ -1,0 +1,53 @@
+name: Apply V3 Payload
+
+on:
+  push:
+    branches:
+      - chatgpt-v3-real-retro
+    paths:
+      - '.payload/retro_games_ar_v3_real_retro.zip.b64'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: chatgpt-v3-real-retro
+
+      - name: Decode and apply project
+        shell: bash
+        run: |
+          set -e
+          mkdir -p /tmp/retro_v3
+          base64 -d .payload/retro_games_ar_v3_real_retro.zip.b64 > /tmp/retro_v3/project.zip
+          unzip -o /tmp/retro_v3/project.zip -d /tmp/retro_v3/unpacked
+          SRC="/tmp/retro_v3/unpacked/retro_games_ar_v3"
+          if [ ! -d "$SRC" ]; then
+            echo "Project folder not found"
+            find /tmp/retro_v3/unpacked -maxdepth 2 -type d
+            exit 1
+          fi
+          rsync -a --delete \
+            --exclude='.git' \
+            --exclude='.payload' \
+            "$SRC"/ ./
+          rm -rf .payload
+
+      - name: Commit V3 files
+        shell: bash
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Apply v3 real retro project"
+            git push origin chatgpt-v3-real-retro
+          fi

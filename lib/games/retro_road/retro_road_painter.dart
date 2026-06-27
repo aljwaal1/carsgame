@@ -1,9 +1,12 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import '../../core/graphics/retro_pixels.dart';
 import 'retro_road_models.dart';
 import 'retro_road_weather.dart';
 
 class RetroRoadPainter extends CustomPainter {
   RetroRoadPainter({required this.playerX, required this.cars, required this.weather, required this.day, required this.score});
+
   final double playerX;
   final List<RoadCar> cars;
   final RoadWeather weather;
@@ -14,100 +17,138 @@ class RetroRoadPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final w = size.width;
     final h = size.height;
-    canvas.drawRect(Offset.zero & size, Paint()..color = _skyColor());
+    final bg = Offset.zero & size;
+    canvas.drawRect(bg, Paint()..shader = LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: _skyColors(),
+    ).createShader(bg));
 
-    final road = Path()
-      ..moveTo(w * 0.20, 0)
-      ..lineTo(w * 0.80, 0)
-      ..lineTo(w * 0.94, h)
-      ..lineTo(w * 0.06, h)
-      ..close();
-    canvas.drawPath(road, Paint()..color = _roadColor());
-
-    final edge = Paint()..color = Colors.white30..strokeWidth = 2;
-    canvas.drawLine(Offset(w * 0.20, 0), Offset(w * 0.06, h), edge);
-    canvas.drawLine(Offset(w * 0.80, 0), Offset(w * 0.94, h), edge);
-
-    final dash = Paint()..color = Colors.white24..strokeWidth = 3;
-    for (int lane = 1; lane <= 3; lane++) {
-      final x = w * (0.25 + lane * 0.125);
-      for (int i = 0; i < 8; i++) {
-        final y = ((i * 95 + score * 0.35) % (h + 100)) - 60;
-        canvas.drawLine(Offset(x, y), Offset(x, y + 35), dash);
-      }
-    }
-
-    if (weather == RoadWeather.snow) _drawSnow(canvas, size);
-    if (weather == RoadWeather.rain) _drawRain(canvas, size);
+    _sunMoon(canvas, size);
+    _mountains(canvas, size);
+    _ground(canvas, size);
+    _road(canvas, size);
+    _laneMarks(canvas, size);
+    _particles(canvas, size);
 
     for (final car in cars) {
-      _drawCar(canvas, Offset(car.x * w, car.y * h), w * 0.105, false);
+      final c = Offset(car.x * w, car.y * h);
+      _car(canvas, c, math.max(2.8, w * .010), enemy: true, lane: car.lane);
     }
-    _drawCar(canvas, Offset(playerX * w, h * 0.82), w * 0.12, true);
 
-    if (weather == RoadWeather.night) {
-      canvas.drawRect(Offset.zero & size, Paint()..color = Colors.black.withOpacity(0.38));
-      _drawHeadLights(canvas, Offset(playerX * w, h * 0.82), w, h);
+    final pc = Offset(playerX * w, h * .82);
+    if (weather == RoadWeather.night || weather == RoadWeather.fog || weather == RoadWeather.rain) {
+      final light = Path()
+        ..moveTo(pc.dx - 14, pc.dy - 8)
+        ..lineTo(pc.dx - w * .20, pc.dy - h * .35)
+        ..lineTo(pc.dx + w * .20, pc.dy - h * .35)
+        ..lineTo(pc.dx + 14, pc.dy - 8)
+        ..close();
+      canvas.drawPath(light, Paint()..color = const Color(0xfffff3b0).withOpacity(.18));
     }
-    if (weather == RoadWeather.fog) {
-      canvas.drawRect(Offset.zero & size, Paint()..color = Colors.white.withOpacity(0.42));
-      canvas.drawRect(Rect.fromLTWH(0, h * 0.55, w, h * 0.45), Paint()..color = Colors.transparent..blendMode = BlendMode.clear);
-    }
+    _car(canvas, pc, math.max(3.2, w * .0115), enemy: false, lane: 0);
+    _overlay(canvas, size);
+    _crt(canvas, size);
   }
 
-  Color _skyColor() {
+  List<Color> _skyColors() {
     switch (weather) {
-      case RoadWeather.day: return const Color(0xff2b6cb0);
-      case RoadWeather.sunset: return const Color(0xff7c2d12);
-      case RoadWeather.night: return const Color(0xff020617);
-      case RoadWeather.fog: return const Color(0xff64748b);
-      case RoadWeather.snow: return const Color(0xffdbeafe);
-      case RoadWeather.rain: return const Color(0xff1e293b);
+      case RoadWeather.sunset: return const [Color(0xff3b0764), Color(0xfffb7185), Color(0xfff59e0b)];
+      case RoadWeather.night: return const [Color(0xff020617), Color(0xff0f172a), Color(0xff111827)];
+      case RoadWeather.fog: return const [Color(0xff64748b), Color(0xff94a3b8), Color(0xffcbd5e1)];
+      case RoadWeather.snow: return const [Color(0xffbfdbfe), Color(0xffdbeafe), Color(0xfff8fafc)];
+      case RoadWeather.rain: return const [Color(0xff111827), Color(0xff334155), Color(0xff475569)];
+      case RoadWeather.day: return const [Color(0xff38bdf8), Color(0xff60a5fa), Color(0xffbbf7d0)];
     }
   }
 
-  Color _roadColor() => weather == RoadWeather.snow ? const Color(0xff94a3b8) : const Color(0xff263244);
-
-  void _drawCar(Canvas canvas, Offset c, double s, bool player) {
-    final body = Paint()..color = player ? Colors.cyanAccent : Colors.redAccent;
-    final shade = Paint()..color = Colors.black45;
-    canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromCenter(center: c, width: s * 0.72, height: s * 1.25), Radius.circular(s * 0.12)), body);
-    canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromCenter(center: c.translate(0, -s * 0.18), width: s * 0.45, height: s * 0.35), Radius.circular(s * 0.08)), shade);
-    canvas.drawCircle(c.translate(-s * 0.32, s * 0.34), s * 0.09, shade);
-    canvas.drawCircle(c.translate(s * 0.32, s * 0.34), s * 0.09, shade);
-    if (!player && weather == RoadWeather.night) {
-      final light = Paint()..color = Colors.redAccent.withOpacity(0.9);
-      canvas.drawCircle(c.translate(-s * 0.20, s * 0.52), 3, light);
-      canvas.drawCircle(c.translate(s * 0.20, s * 0.52), 3, light);
+  void _sunMoon(Canvas c, Size s) {
+    if (weather == RoadWeather.night) {
+      c.drawCircle(Offset(s.width * .78, s.height * .12), 22, Paint()..color = const Color(0xffe5e7eb));
+    } else if (weather == RoadWeather.sunset) {
+      c.drawCircle(Offset(s.width * .72, s.height * .16), 30, Paint()..color = const Color(0xffffd166));
     }
   }
 
-  void _drawHeadLights(Canvas canvas, Offset c, double w, double h) {
-    final light = Paint()..color = Colors.yellowAccent.withOpacity(0.13);
-    final beam = Path()
-      ..moveTo(c.dx - 18, c.dy - 25)
-      ..lineTo(w * 0.20, 0)
-      ..lineTo(w * 0.80, 0)
-      ..lineTo(c.dx + 18, c.dy - 25)
+  void _mountains(Canvas c, Size s) {
+    final p = Paint()..color = weather == RoadWeather.night ? const Color(0xff111827) : const Color(0xff2563eb).withOpacity(.28);
+    final path = Path()
+      ..moveTo(0, s.height * .33)
+      ..lineTo(s.width * .18, s.height * .22)
+      ..lineTo(s.width * .34, s.height * .34)
+      ..lineTo(s.width * .55, s.height * .20)
+      ..lineTo(s.width * .78, s.height * .35)
+      ..lineTo(s.width, s.height * .24)
+      ..lineTo(s.width, s.height * .50)
+      ..lineTo(0, s.height * .50)
       ..close();
-    canvas.drawPath(beam, light);
+    c.drawPath(path, p);
   }
 
-  void _drawSnow(Canvas canvas, Size size) {
-    final paint = Paint()..color = Colors.white.withOpacity(0.75);
-    for (int i = 0; i < 70; i++) {
-      final x = ((i * 47 + score * 0.35) % size.width).toDouble();
-      final y = ((i * 83 + score * 0.8) % size.height).toDouble();
-      canvas.drawCircle(Offset(x, y), 1.6, paint);
+  void _ground(Canvas c, Size s) {
+    c.drawRect(Rect.fromLTWH(0, s.height * .38, s.width, s.height * .62), Paint()..color = weather == RoadWeather.snow ? const Color(0xfff8fafc) : const Color(0xff14532d));
+  }
+
+  void _road(Canvas c, Size s) {
+    final w = s.width, h = s.height;
+    final road = Path()
+      ..moveTo(w * .42, h * .34)
+      ..lineTo(w * .58, h * .34)
+      ..lineTo(w * .94, h)
+      ..lineTo(w * .06, h)
+      ..close();
+    c.drawPath(road, Paint()..color = const Color(0xff1f2937));
+    c.drawPath(road, Paint()..style = PaintingStyle.stroke..strokeWidth = 4..color = Colors.white.withOpacity(.25));
+  }
+
+  void _laneMarks(Canvas c, Size s) {
+    final p = Paint()..color = Colors.white.withOpacity(weather == RoadWeather.fog ? .25 : .55);
+    for (var i = 0; i < 13; i++) {
+      final y = ((i * 66 + score * 2) % (s.height + 80)).toDouble() - 40;
+      final t = y / s.height;
+      final x = s.width * .5;
+      final len = 14 + t * 32;
+      final width = 3 + t * 4;
+      c.drawRRect(RRect.fromRectAndRadius(Rect.fromCenter(center: Offset(x, y), width: width, height: len), const Radius.circular(3)), p);
     }
   }
 
-  void _drawRain(Canvas canvas, Size size) {
-    final paint = Paint()..color = Colors.lightBlueAccent.withOpacity(0.45)..strokeWidth = 1.2;
-    for (int i = 0; i < 60; i++) {
-      final x = ((i * 55 + score * 1.1) % size.width).toDouble();
-      final y = ((i * 77 + score * 1.5) % size.height).toDouble();
-      canvas.drawLine(Offset(x, y), Offset(x - 8, y + 16), paint);
+  void _particles(Canvas c, Size s) {
+    if (weather != RoadWeather.snow && weather != RoadWeather.rain) return;
+    final p = Paint()..color = weather == RoadWeather.snow ? Colors.white.withOpacity(.85) : const Color(0xff93c5fd).withOpacity(.65);
+    for (var i = 0; i < 70; i++) {
+      final x = ((i * 61 + score * 3) % s.width).toDouble();
+      final y = ((i * 47 + score * 6) % s.height).toDouble();
+      if (weather == RoadWeather.rain) {
+        c.drawLine(Offset(x, y), Offset(x - 5, y + 13), p..strokeWidth = 1.4);
+      } else {
+        c.drawCircle(Offset(x, y), i % 3 == 0 ? 2.2 : 1.4, p);
+      }
+    }
+  }
+
+  void _car(Canvas c, Offset center, double px, {required bool enemy, required int lane}) {
+    final body = enemy ? [const Color(0xffef4444), const Color(0xffffd166), const Color(0xff22c55e)][lane.abs() % 3] : const Color(0xff38bdf8);
+    RetroPixels.draw(c, center, px, const [
+      '..WW..', '.WBBW.', '.BBBB.', 'RBBBBR', 'BBBBBB', 'KBBBBK', '.B..B.'
+    ], {
+      'W': const Color(0xffe0f2fe),
+      'B': body,
+      'R': enemy ? const Color(0xfffff176) : const Color(0xffef4444),
+      'K': const Color(0xff020617),
+    }, shadow: 3);
+  }
+
+  void _overlay(Canvas c, Size s) {
+    if (weather == RoadWeather.fog) c.drawRect(Offset.zero & s, Paint()..color = Colors.white.withOpacity(.34));
+    if (weather == RoadWeather.night) c.drawRect(Offset.zero & s, Paint()..color = Colors.black.withOpacity(.26));
+    if (weather == RoadWeather.rain) c.drawRect(Offset.zero & s, Paint()..color = Colors.blueGrey.withOpacity(.14));
+  }
+
+  void _crt(Canvas c, Size s) {
+    final p = Paint()..color = Colors.black.withOpacity(.11);
+    for (double y = 0; y < s.height; y += 5) {
+      c.drawRect(Rect.fromLTWH(0, y, s.width, 1), p);
     }
   }
 
