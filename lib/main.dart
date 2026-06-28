@@ -13,7 +13,7 @@ class RetroApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'ألعاب زمان V4.7',
+      title: 'ألعاب زمان V4.8',
       theme: ThemeData.dark(useMaterial3: true).copyWith(
         scaffoldBackgroundColor: const Color(0xff040816),
         appBarTheme: const AppBarTheme(centerTitle: true, backgroundColor: Color(0xff07111f)),
@@ -36,10 +36,16 @@ class Sfx {
   }
 
   static void start() => play('sounds/shared/game_start.wav', .55);
-  static void stop() => play('sounds/shared/game_over.wav', .65);
+  static void gameOver() => play('sounds/shared/game_over.wav', .75);
+  static void crash() => play('sounds/fuel_plane/plane_explosion.wav', .82);
   static void pass() => play('sounds/retro_road/car_pass.wav', .38);
   static void steer() => play('sounds/retro_road/car_pass.wav', .22);
   static void stage() => play('sounds/retro_road/stage_clear.wav', .55);
+
+  static void crashThenGameOver() {
+    crash();
+    Future.delayed(const Duration(milliseconds: 520), () => gameOver());
+  }
 
   static void engine(int tick, double throttle) {
     final gap = (34 - throttle * 18).round().clamp(14, 34);
@@ -72,14 +78,14 @@ class Home extends StatelessWidget {
             padding: const EdgeInsets.all(18),
             child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
               const SizedBox(height: 18),
-              const Text('ألعاب زمان V4.7', textAlign: TextAlign.center, style: TextStyle(fontSize: 35, fontWeight: FontWeight.w900, letterSpacing: .5)),
+              const Text('ألعاب زمان V4.8', textAlign: TextAlign.center, style: TextStyle(fontSize: 35, fontWeight: FontWeight.w900, letterSpacing: .5)),
               const SizedBox(height: 8),
-              const Text('تحكم كامل بالسحب: يمين ويسار للمسار، أعلى وأسفل للسرعة', textAlign: TextAlign.center, style: TextStyle(color: Colors.white70)),
+              const Text('مؤثرات صوتية أقوى + شاشة نهاية خاصة', textAlign: TextAlign.center, style: TextStyle(color: Colors.white70)),
               const SizedBox(height: 28),
               _Tile(
                 title: 'طريق التحمل',
                 icon: '🏎️',
-                text: 'بدون أزرار يمين/يسار. كل التحكم من شاشة اللعب بالسحب.',
+                text: 'صوت اصطدام منفصل، صوت نهاية، وتحكم كامل بالسحب.',
                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const Directionality(textDirection: TextDirection.rtl, child: RoadGame()))),
               ),
               const SizedBox(height: 16),
@@ -172,6 +178,8 @@ class _RoadGameState extends State<RoadGame> {
   bool running = false;
   bool stopped = false;
   bool gameOver = false;
+  bool justCrashed = false;
+  int crashFlash = 0;
   final cars = <RoadCar>[];
   final colors = const [Color(0xffef4444), Color(0xffffd166), Color(0xff22c55e), Color(0xffa78bfa), Color(0xfff97316)];
 
@@ -205,6 +213,8 @@ class _RoadGameState extends State<RoadGame> {
     running = true;
     stopped = false;
     gameOver = false;
+    justCrashed = false;
+    crashFlash = 0;
     Sfx.start();
     timer = Timer.periodic(const Duration(milliseconds: 33), (_) => step());
     setState(() {});
@@ -214,13 +224,19 @@ class _RoadGameState extends State<RoadGame> {
     if (!gameOver) {
       stopped = false;
       running = true;
+      justCrashed = false;
+      crashFlash = 0;
       Sfx.start();
       setState(() {});
     }
   }
 
   void step() {
-    if (!running) return;
+    if (crashFlash > 0) crashFlash--;
+    if (!running) {
+      if (mounted) setState(() {});
+      return;
+    }
     tick++;
     distance++;
     Sfx.engine(tick, throttle);
@@ -256,15 +272,18 @@ class _RoadGameState extends State<RoadGame> {
       if (c.depth > .78 && c.depth < .96 && c.lane == lane) {
         cars.remove(c);
         running = false;
-        Sfx.stop();
+        justCrashed = true;
+        crashFlash = 16;
         if (lives > 1) {
           lives--;
           stopped = true;
           throttle = math.max(.35, throttle - .20).toDouble();
+          Sfx.crash();
         } else {
           lives = 0;
           gameOver = true;
           stopped = false;
+          Sfx.crashThenGameOver();
         }
         break;
       }
@@ -344,10 +363,10 @@ class _RoadGameState extends State<RoadGame> {
   @override
   Widget build(BuildContext context) {
     final overlay = !running || stopped || gameOver;
-    final title = gameOver ? 'انتهت اللعبة' : stopped ? 'اصطدام!' : 'طريق التحمل';
-    final sub = gameOver ? 'النقاط: $score' : stopped ? 'تبقى لديك $lives أرواح — تابع من نفس الجولة' : 'اسحب يمين/يسار للمسار، وأعلى/أسفل للسرعة';
+    final title = stopped ? 'اصطدام!' : 'طريق التحمل';
+    final sub = stopped ? 'تبقى لديك $lives أرواح — تابع من نفس الجولة' : 'اسحب يمين/يسار للمسار، وأعلى/أسفل للسرعة';
     return Scaffold(
-      appBar: AppBar(title: const Text('طريق التحمل V4.7')),
+      appBar: AppBar(title: const Text('طريق التحمل V4.8')),
       body: SafeArea(child: Column(children: [
         _Hud(score: score, day: day, lives: lives, passed: passed, target: target, weather: weather, speed: speedKmh, throttle: throttle),
         Expanded(child: Container(
@@ -364,10 +383,11 @@ class _RoadGameState extends State<RoadGame> {
             onPanUpdate: onPanUpdate,
             onPanEnd: onPanEnd,
             child: Stack(children: [
-              CustomPaint(painter: RoadPainter(playerLane: lane, cars: cars, weather: weather, tick: tick, throttle: throttle), child: const SizedBox.expand()),
+              CustomPaint(painter: RoadPainter(playerLane: lane, cars: cars, weather: weather, tick: tick, throttle: throttle, crashFlash: crashFlash), child: const SizedBox.expand()),
               Positioned(right: 12, bottom: 14, child: _ThrottlePad(throttle: throttle, speed: speedKmh, onUp: () => changeThrottle(.08), onDown: () => changeThrottle(-.08))),
               Positioned(left: 12, bottom: 14, child: _HintBox()),
-              if (overlay) Center(child: StartCard(title: title, subtitle: sub, buttonText: stopped ? 'تابع' : 'ابدأ', onTap: stopped ? resume : start)),
+              if (overlay && gameOver) Center(child: GameOverCard(score: score, day: day, passed: passed, onTap: start)),
+              if (overlay && !gameOver) Center(child: StartCard(title: title, subtitle: sub, buttonText: stopped ? 'تابع' : 'ابدأ', crashed: justCrashed, onTap: stopped ? resume : start)),
             ]),
           ),
         )),
@@ -465,21 +485,24 @@ class RetroButton extends StatelessWidget {
 }
 
 class StartCard extends StatelessWidget {
-  const StartCard({super.key, required this.title, required this.subtitle, required this.onTap, this.buttonText = 'ابدأ'});
+  const StartCard({super.key, required this.title, required this.subtitle, required this.onTap, this.buttonText = 'ابدأ', this.crashed = false});
   final String title, subtitle, buttonText;
   final VoidCallback onTap;
+  final bool crashed;
 
   @override
   Widget build(BuildContext context) => Container(
         margin: const EdgeInsets.all(22),
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
-          color: Colors.black.withOpacity(.76),
+          color: Colors.black.withOpacity(.78),
           borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: Colors.cyanAccent.withOpacity(.22)),
-          boxShadow: [BoxShadow(color: Colors.cyanAccent.withOpacity(.12), blurRadius: 30)],
+          border: Border.all(color: (crashed ? Colors.redAccent : Colors.cyanAccent).withOpacity(.28)),
+          boxShadow: [BoxShadow(color: (crashed ? Colors.redAccent : Colors.cyanAccent).withOpacity(.16), blurRadius: 34)],
         ),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Icon(crashed ? Icons.warning_amber_rounded : Icons.play_circle_fill, size: 52, color: crashed ? Colors.redAccent : Colors.cyanAccent),
+          const SizedBox(height: 8),
           Text(title, textAlign: TextAlign.center, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900)),
           const SizedBox(height: 8),
           Text(subtitle, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70)),
@@ -489,9 +512,78 @@ class StartCard extends StatelessWidget {
       );
 }
 
+class GameOverCard extends StatelessWidget {
+  const GameOverCard({super.key, required this.score, required this.day, required this.passed, required this.onTap});
+  final int score, day, passed;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        margin: const EdgeInsets.all(18),
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xdd1f0202), Color(0xee050505)]),
+          borderRadius: BorderRadius.circular(28),
+          border: Border.all(color: Colors.redAccent.withOpacity(.42), width: 1.5),
+          boxShadow: [BoxShadow(color: Colors.redAccent.withOpacity(.20), blurRadius: 40)],
+        ),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          SizedBox(height: 120, child: CustomPaint(painter: GameOverScenePainter(), child: const SizedBox.expand())),
+          const SizedBox(height: 8),
+          const Text('GAME OVER', style: TextStyle(fontSize: 34, fontWeight: FontWeight.w900, color: Colors.redAccent, letterSpacing: 1.2)),
+          const SizedBox(height: 6),
+          Text('النقاط: $score   |   اليوم: $day   |   تجاوزت: $passed', textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 18),
+          RetroButton(text: 'إعادة اللعب', icon: Icons.replay, onTap: onTap),
+        ]),
+      );
+}
+
+class GameOverScenePainter extends CustomPainter {
+  @override
+  void paint(Canvas c, Size s) {
+    final center = Offset(s.width * .5, s.height * .60);
+    c.drawOval(Rect.fromCenter(center: center.translate(0, 12), width: s.width * .62, height: 18), Paint()..color = Colors.black.withOpacity(.55));
+    final glow = Paint()..color = Colors.redAccent.withOpacity(.18)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 18);
+    c.drawCircle(Offset(s.width * .50, s.height * .50), 52, glow);
+    final body = Path()
+      ..moveTo(center.dx - 70, center.dy + 2)
+      ..lineTo(center.dx - 48, center.dy - 25)
+      ..lineTo(center.dx - 12, center.dy - 35)
+      ..lineTo(center.dx + 42, center.dy - 20)
+      ..lineTo(center.dx + 72, center.dy + 5)
+      ..lineTo(center.dx + 50, center.dy + 28)
+      ..lineTo(center.dx - 58, center.dy + 25)
+      ..close();
+    c.save();
+    c.translate(center.dx, center.dy);
+    c.rotate(-0.13);
+    c.translate(-center.dx, -center.dy);
+    c.drawPath(body, Paint()..color = const Color(0xffef4444));
+    c.drawPath(body, Paint()..style = PaintingStyle.stroke..strokeWidth = 3..color = Colors.white.withOpacity(.45));
+    c.drawRRect(RRect.fromRectAndRadius(Rect.fromCenter(center: center.translate(-4, -13), width: 42, height: 22), const Radius.circular(8)), Paint()..color = const Color(0xffdbeafe));
+    c.drawCircle(center.translate(-48, 25), 13, Paint()..color = const Color(0xff020617));
+    c.drawCircle(center.translate(45, 25), 13, Paint()..color = const Color(0xff020617));
+    c.drawLine(center.translate(0, -34), center.translate(-12, 8), Paint()..color = Colors.black.withOpacity(.55)..strokeWidth = 3);
+    c.drawLine(center.translate(18, -25), center.translate(38, 0), Paint()..color = Colors.black.withOpacity(.45)..strokeWidth = 3);
+    c.restore();
+    final spark = Paint()..color = Colors.orangeAccent.withOpacity(.90)..strokeWidth = 2;
+    for (var i = 0; i < 9; i++) {
+      final a = i * math.pi / 4.5;
+      final o = Offset(center.dx + math.cos(a) * 42, center.dy - 18 + math.sin(a) * 24);
+      c.drawLine(o, Offset(o.dx + math.cos(a) * 14, o.dy + math.sin(a) * 14), spark);
+    }
+    c.drawCircle(center.translate(58, -18), 9, Paint()..color = Colors.yellowAccent.withOpacity(.80));
+    c.drawCircle(center.translate(64, -24), 18, Paint()..color = Colors.orangeAccent.withOpacity(.18));
+  }
+
+  @override
+  bool shouldRepaint(covariant GameOverScenePainter oldDelegate) => false;
+}
+
 class RoadPainter extends CustomPainter {
-  RoadPainter({required this.playerLane, required this.cars, required this.weather, required this.tick, required this.throttle});
-  final int playerLane, tick;
+  RoadPainter({required this.playerLane, required this.cars, required this.weather, required this.tick, required this.throttle, required this.crashFlash});
+  final int playerLane, tick, crashFlash;
   final List<RoadCar> cars;
   final String weather;
   final double throttle;
@@ -527,6 +619,7 @@ class RoadPainter extends CustomPainter {
     drawPlayer(c, s);
     drawSpeedFx(c, s);
     drawWeather(c, s);
+    drawCrashFlash(c, s);
     drawPostFx(c, s);
   }
 
@@ -644,6 +737,20 @@ class RoadPainter extends CustomPainter {
       final x = (i * 43 + tick * 9) % s.width;
       final y = s.height * (.48 + (i % 5) * .11);
       c.drawLine(Offset(x.toDouble(), y), Offset(x.toDouble() - 18 - throttle * 24, y + 18 + throttle * 18), p..strokeWidth = 1.5 + throttle * 2);
+    }
+  }
+
+  void drawCrashFlash(Canvas c, Size s) {
+    if (crashFlash <= 0) return;
+    final op = (crashFlash / 16).clamp(0.0, 1.0).toDouble();
+    c.drawRect(Offset.zero & s, Paint()..color = Colors.redAccent.withOpacity(.18 * op));
+    final center = Offset(laneX(s, playerLane, .88), s.height * .78);
+    final spark = Paint()..color = Colors.orangeAccent.withOpacity(op)..strokeWidth = 2.2;
+    for (var i = 0; i < 12; i++) {
+      final a = i * math.pi / 6;
+      final start = Offset(center.dx + math.cos(a) * 18, center.dy + math.sin(a) * 12);
+      final end = Offset(center.dx + math.cos(a) * (36 + 18 * op), center.dy + math.sin(a) * (25 + 14 * op));
+      c.drawLine(start, end, spark);
     }
   }
 
