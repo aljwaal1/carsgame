@@ -13,7 +13,7 @@ class RetroApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'ألعاب زمان V4.5',
+      title: 'ألعاب زمان V4.6',
       theme: ThemeData.dark(useMaterial3: true).copyWith(
         scaffoldBackgroundColor: const Color(0xff040816),
         appBarTheme: const AppBarTheme(centerTitle: true, backgroundColor: Color(0xff07111f)),
@@ -25,6 +25,8 @@ class RetroApp extends StatelessWidget {
 
 class Sfx {
   static final AudioPlayer _p = AudioPlayer();
+  static int _lastEngineTick = 0;
+  static int _lastSpeedSoundTick = 0;
 
   static Future<void> play(String path, double volume) async {
     try {
@@ -38,6 +40,21 @@ class Sfx {
   static void pass() => play('sounds/retro_road/car_pass.wav', .38);
   static void steer() => play('sounds/retro_road/car_pass.wav', .22);
   static void stage() => play('sounds/retro_road/stage_clear.wav', .55);
+
+  static void engine(int tick, double throttle) {
+    final gap = (34 - throttle * 18).round().clamp(14, 34);
+    if (tick - _lastEngineTick >= gap) {
+      _lastEngineTick = tick;
+      play('sounds/retro_road/car_pass.wav', .10 + throttle * .14);
+    }
+  }
+
+  static void speedTap(int tick, double throttle) {
+    if (tick - _lastSpeedSoundTick > 7) {
+      _lastSpeedSoundTick = tick;
+      play('sounds/retro_road/car_pass.wav', .22 + throttle * .18);
+    }
+  }
 }
 
 class Home extends StatelessWidget {
@@ -48,36 +65,32 @@ class Home extends StatelessWidget {
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xff020617), Color(0xff0b1028), Color(0xff082f49)],
-          ),
+          gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xff020617), Color(0xff0b1028), Color(0xff082f49)]),
         ),
         child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.all(18),
             child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
               const SizedBox(height: 18),
-              const Text('ألعاب زمان V4.5', textAlign: TextAlign.center, style: TextStyle(fontSize: 35, fontWeight: FontWeight.w900, letterSpacing: .5)),
+              const Text('ألعاب زمان V4.6', textAlign: TextAlign.center, style: TextStyle(fontSize: 35, fontWeight: FontWeight.w900, letterSpacing: .5)),
               const SizedBox(height: 8),
-              const Text('ستايل كونسول قديم: طريق 3D، إضاءة، ضباب، وسيارة رياضية منخفضة', textAlign: TextAlign.center, style: TextStyle(color: Colors.white70)),
+              const Text('تحكم سرعة بالسحب للأعلى والأسفل + مؤثرات صوتية أكثر', textAlign: TextAlign.center, style: TextStyle(color: Colors.white70)),
               const SizedBox(height: 28),
               _Tile(
                 title: 'طريق التحمل',
                 icon: '🏎️',
-                text: 'إحساس PlayStation 2: ظل، لمعان، طريق عميق، وطقس يؤثر على الرؤية.',
+                text: 'اسحب داخل الشاشة للأعلى للتسارع، وللأسفل لتخفيف السرعة.',
                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const Directionality(textDirection: TextDirection.rtl, child: RoadGame()))),
               ),
               const SizedBox(height: 16),
               _Tile(
                 title: 'طائرة الوقود',
                 icon: '✈️',
-                text: 'مؤجلة قليلًا حتى نثبت لعبة السيارات بأفضل شكل.',
+                text: 'مؤجلة قليلًا حتى تثبت لعبة السيارات.',
                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const Directionality(textDirection: TextDirection.rtl, child: PlaneMini()))),
               ),
               const Spacer(),
-              const Text('تصميم أصلي مستوحى من ألعاب التحمل القديمة، بدون نسخ لعبة محمية.', textAlign: TextAlign.center, style: TextStyle(color: Colors.white38, fontSize: 12)),
+              const Text('تصميم أصلي مستوحى من ألعاب التحمل القديمة.', textAlign: TextAlign.center, style: TextStyle(color: Colors.white38, fontSize: 12)),
             ]),
           ),
         ),
@@ -94,31 +107,29 @@ class _Tile extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(28),
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(.08),
-          borderRadius: BorderRadius.circular(28),
-          border: Border.all(color: Colors.lightBlueAccent.withOpacity(.18)),
-          boxShadow: [BoxShadow(color: Colors.lightBlueAccent.withOpacity(.10), blurRadius: 28, spreadRadius: 1)],
+  Widget build(BuildContext context) => InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(28),
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(.08),
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(color: Colors.lightBlueAccent.withOpacity(.18)),
+            boxShadow: [BoxShadow(color: Colors.lightBlueAccent.withOpacity(.10), blurRadius: 28, spreadRadius: 1)],
+          ),
+          child: Row(children: [
+            Text(icon, style: const TextStyle(fontSize: 42)),
+            const SizedBox(width: 16),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(title, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900)),
+              const SizedBox(height: 6),
+              Text(text, style: const TextStyle(color: Colors.white70)),
+            ])),
+            const Icon(Icons.play_circle_fill, color: Colors.lightBlueAccent, size: 36),
+          ]),
         ),
-        child: Row(children: [
-          Text(icon, style: const TextStyle(fontSize: 42)),
-          const SizedBox(width: 16),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(title, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900)),
-            const SizedBox(height: 6),
-            Text(text, style: const TextStyle(color: Colors.white70)),
-          ])),
-          const Icon(Icons.play_circle_fill, color: Colors.lightBlueAccent, size: 36),
-        ]),
-      ),
-    );
-  }
+      );
 }
 
 class PlaneMini extends StatelessWidget {
@@ -155,6 +166,7 @@ class _RoadGameState extends State<RoadGame> {
   int tick = 0;
   int lives = 3;
   int distance = 0;
+  double throttle = .55;
   bool running = false;
   bool stopped = false;
   bool gameOver = false;
@@ -171,6 +183,9 @@ class _RoadGameState extends State<RoadGame> {
     return 'مطر';
   }
 
+  int get speedKmh => (60 + throttle * 180).round();
+  double get speedFactor => .68 + throttle * .84;
+
   void start() {
     timer?.cancel();
     lane = 2;
@@ -181,6 +196,7 @@ class _RoadGameState extends State<RoadGame> {
     tick = 0;
     lives = 3;
     distance = 0;
+    throttle = .55;
     cars.clear();
     running = true;
     stopped = false;
@@ -203,13 +219,15 @@ class _RoadGameState extends State<RoadGame> {
     if (!running) return;
     tick++;
     distance++;
-    if (tick % 12 == 0) score++;
-    final speed = math.min(.0145, .0049 + day * .00058 + distance / 250000).toDouble();
-    final spawn = (.011 + day * .0012).clamp(.011, .025).toDouble();
-    if (rnd.nextDouble() < spawn && cars.length < 5) {
+    Sfx.engine(tick, throttle);
+    if (tick % 12 == 0) score += (1 + throttle * 2).round();
+    final base = math.min(.0145, .0049 + day * .00058 + distance / 250000).toDouble();
+    final speed = base * speedFactor;
+    final spawn = (.010 + day * .0011 + throttle * .006).clamp(.010, .031).toDouble();
+    if (rnd.nextDouble() < spawn && cars.length < 6) {
       final l = rnd.nextInt(5);
       if (!cars.any((c) => c.lane == l && c.depth < .25)) {
-        cars.add(RoadCar(lane: l, depth: .04, color: colors[rnd.nextInt(colors.length)], speed: .82 + rnd.nextDouble() * .28));
+        cars.add(RoadCar(lane: l, depth: .04, color: colors[rnd.nextInt(colors.length)], speed: .80 + rnd.nextDouble() * .30));
       }
     }
     for (final c in cars) {
@@ -218,7 +236,7 @@ class _RoadGameState extends State<RoadGame> {
     final done = cars.where((c) => c.depth > 1.08).length;
     if (done > 0) {
       passed += done;
-      score += done * 100;
+      score += done * (90 + (throttle * 40).round());
       cars.removeWhere((c) => c.depth > 1.08);
       Sfx.pass();
     }
@@ -238,6 +256,7 @@ class _RoadGameState extends State<RoadGame> {
         if (lives > 1) {
           lives--;
           stopped = true;
+          throttle = math.max(.35, throttle - .20).toDouble();
         } else {
           lives = 0;
           gameOver = true;
@@ -247,6 +266,18 @@ class _RoadGameState extends State<RoadGame> {
       }
     }
     if (mounted) setState(() {});
+  }
+
+  void changeThrottle(double delta) {
+    if (!running) return;
+    final old = throttle;
+    throttle = (throttle + delta).clamp(.20, 1.0).toDouble();
+    if ((old - throttle).abs() > .025) Sfx.speedTap(tick, throttle);
+    setState(() {});
+  }
+
+  void onVerticalDrag(DragUpdateDetails d) {
+    changeThrottle((-d.delta.dy) / 230);
   }
 
   void left() {
@@ -275,11 +306,11 @@ class _RoadGameState extends State<RoadGame> {
   Widget build(BuildContext context) {
     final overlay = !running || stopped || gameOver;
     final title = gameOver ? 'انتهت اللعبة' : stopped ? 'اصطدام!' : 'طريق التحمل';
-    final sub = gameOver ? 'النقاط: $score' : stopped ? 'تبقى لديك $lives أرواح — تابع من نفس الجولة' : 'رؤية متغيرة + طريق 3D. الهدف: $target سيارة';
+    final sub = gameOver ? 'النقاط: $score' : stopped ? 'تبقى لديك $lives أرواح — تابع من نفس الجولة' : 'اسحب للأعلى لزيادة السرعة وللأسفل للتخفيف';
     return Scaffold(
-      appBar: AppBar(title: const Text('طريق التحمل V4.5')),
+      appBar: AppBar(title: const Text('طريق التحمل V4.6')),
       body: SafeArea(child: Column(children: [
-        _Hud(score: score, day: day, lives: lives, passed: passed, target: target, weather: weather),
+        _Hud(score: score, day: day, lives: lives, passed: passed, target: target, weather: weather, speed: speedKmh, throttle: throttle),
         Expanded(child: Container(
           margin: const EdgeInsets.symmetric(horizontal: 10),
           clipBehavior: Clip.antiAlias,
@@ -288,10 +319,16 @@ class _RoadGameState extends State<RoadGame> {
             border: Border.all(color: Colors.lightBlueAccent.withOpacity(.22)),
             boxShadow: [BoxShadow(color: Colors.cyanAccent.withOpacity(.10), blurRadius: 28)],
           ),
-          child: Stack(children: [
-            CustomPaint(painter: RoadPainter(playerLane: lane, cars: cars, weather: weather, tick: tick), child: const SizedBox.expand()),
-            if (overlay) Center(child: StartCard(title: title, subtitle: sub, buttonText: stopped ? 'تابع' : 'ابدأ', onTap: stopped ? resume : start)),
-          ]),
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onVerticalDragUpdate: onVerticalDrag,
+            child: Stack(children: [
+              CustomPaint(painter: RoadPainter(playerLane: lane, cars: cars, weather: weather, tick: tick, throttle: throttle), child: const SizedBox.expand()),
+              Positioned(right: 12, bottom: 14, child: _ThrottlePad(throttle: throttle, speed: speedKmh, onUp: () => changeThrottle(.08), onDown: () => changeThrottle(-.08))),
+              Positioned(left: 12, bottom: 14, child: _HintBox()),
+              if (overlay) Center(child: StartCard(title: title, subtitle: sub, buttonText: stopped ? 'تابع' : 'ابدأ', onTap: stopped ? resume : start)),
+            ]),
+          ),
         )),
         Padding(padding: const EdgeInsets.fromLTRB(14, 10, 14, 12), child: Row(textDirection: TextDirection.ltr, children: [
           Expanded(child: RetroButton(text: 'يسار', icon: Icons.arrow_back, onTap: left)),
@@ -304,32 +341,28 @@ class _RoadGameState extends State<RoadGame> {
 }
 
 class _Hud extends StatelessWidget {
-  const _Hud({required this.score, required this.day, required this.lives, required this.passed, required this.target, required this.weather});
-  final int score, day, lives, passed, target;
+  const _Hud({required this.score, required this.day, required this.lives, required this.passed, required this.target, required this.weather, required this.speed, required this.throttle});
+  final int score, day, lives, passed, target, speed;
   final String weather;
+  final double throttle;
 
   @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
-      child: Column(children: [
-        Row(children: [
-          Expanded(child: _Chip(label: 'النقاط', value: '$score')),
-          const SizedBox(width: 6),
-          Expanded(child: _Chip(label: 'اليوم', value: '$day')),
-          const SizedBox(width: 6),
-          Expanded(child: _Chip(label: 'الأرواح', value: '$lives')),
-          const SizedBox(width: 6),
-          Expanded(child: _Chip(label: 'الجو', value: weather)),
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+        child: Column(children: [
+          Row(children: [
+            Expanded(child: _Chip(label: 'النقاط', value: '$score')),
+            const SizedBox(width: 6),
+            Expanded(child: _Chip(label: 'السرعة', value: '$speed')),
+            const SizedBox(width: 6),
+            Expanded(child: _Chip(label: 'الأرواح', value: '$lives')),
+            const SizedBox(width: 6),
+            Expanded(child: _Chip(label: 'الجو', value: weather)),
+          ]),
+          const SizedBox(height: 7),
+          ClipRRect(borderRadius: BorderRadius.circular(20), child: LinearProgressIndicator(value: (passed / target).clamp(0, 1).toDouble(), minHeight: 8, backgroundColor: Colors.white12, color: Colors.cyanAccent)),
         ]),
-        const SizedBox(height: 7),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(20),
-          child: LinearProgressIndicator(value: (passed / target).clamp(0, 1).toDouble(), minHeight: 10, backgroundColor: Colors.white12, color: Colors.cyanAccent),
-        ),
-      ]),
-    );
-  }
+      );
 }
 
 class _Chip extends StatelessWidget {
@@ -348,6 +381,35 @@ class _Chip extends StatelessWidget {
           const SizedBox(height: 2),
           Text(value, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900)),
         ]),
+      );
+}
+
+class _ThrottlePad extends StatelessWidget {
+  const _ThrottlePad({required this.throttle, required this.speed, required this.onUp, required this.onDown});
+  final double throttle;
+  final int speed;
+  final VoidCallback onUp, onDown;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        width: 72,
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(color: Colors.black.withOpacity(.42), borderRadius: BorderRadius.circular(18), border: Border.all(color: Colors.cyanAccent.withOpacity(.25))),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          InkWell(onTap: onUp, child: const Icon(Icons.keyboard_arrow_up, size: 30, color: Colors.cyanAccent)),
+          SizedBox(height: 78, child: RotatedBox(quarterTurns: 3, child: LinearProgressIndicator(value: throttle, minHeight: 9, backgroundColor: Colors.white12, color: Colors.cyanAccent))),
+          Text('$speed', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900)),
+          InkWell(onTap: onDown, child: const Icon(Icons.keyboard_arrow_down, size: 30, color: Colors.orangeAccent)),
+        ]),
+      );
+}
+
+class _HintBox extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(color: Colors.black.withOpacity(.34), borderRadius: BorderRadius.circular(14), border: Border.all(color: Colors.white12)),
+        child: const Text('اسحب ↑ سرعة\nاسحب ↓ تهدئة', style: TextStyle(fontSize: 11, color: Colors.white70)),
       );
 }
 
@@ -392,10 +454,11 @@ class StartCard extends StatelessWidget {
 }
 
 class RoadPainter extends CustomPainter {
-  RoadPainter({required this.playerLane, required this.cars, required this.weather, required this.tick});
+  RoadPainter({required this.playerLane, required this.cars, required this.weather, required this.tick, required this.throttle});
   final int playerLane, tick;
   final List<RoadCar> cars;
   final String weather;
+  final double throttle;
 
   double ease(double d) => math.pow(d.clamp(0, 1), 1.13).toDouble();
   double yOf(Size s, double d) => s.height * (.38 + .63 * ease(d));
@@ -426,6 +489,7 @@ class RoadPainter extends CustomPainter {
     for (final car in sorted) drawOpponent(c, s, car);
     drawHeadlights(c, s);
     drawPlayer(c, s);
+    drawSpeedFx(c, s);
     drawWeather(c, s);
     drawPostFx(c, s);
   }
@@ -443,9 +507,6 @@ class RoadPainter extends CustomPainter {
     c.drawRect(Offset.zero & s, Paint()..shader = LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: colors).createShader(Offset.zero & s));
     if (weather == 'ليل') {
       c.drawCircle(Offset(s.width * .78, s.height * .13), 22, Paint()..color = Colors.white70);
-      for (var i = 0; i < 26; i++) {
-        c.drawCircle(Offset(((i * 57) % s.width).toDouble(), (18 + (i * 23) % (s.height * .25)).toDouble()), 1.2, Paint()..color = Colors.white54);
-      }
     } else {
       c.drawCircle(Offset(s.width * .76, s.height * .17), 34, Paint()..color = const Color(0xfffff3b0));
       c.drawCircle(Offset(s.width * .76, s.height * .17), 58, Paint()..color = const Color(0xfffff3b0).withOpacity(.10));
@@ -464,13 +525,7 @@ class RoadPainter extends CustomPainter {
       ..lineTo(0, s.height * .44)
       ..close();
     c.drawPath(mountain, Paint()..color = weather == 'ليل' ? const Color(0xff050816) : const Color(0xff1e3a8a).withOpacity(weather == 'ضباب' ? .08 : .22));
-    final ground = weather == 'ثلج'
-        ? const Color(0xffeef2ff)
-        : weather == 'مطر'
-            ? const Color(0xff0f3d23)
-            : weather == 'ليل'
-                ? const Color(0xff052e16)
-                : const Color(0xff16a34a);
+    final ground = weather == 'ثلج' ? const Color(0xffeef2ff) : weather == 'مطر' ? const Color(0xff0f3d23) : weather == 'ليل' ? const Color(0xff052e16) : const Color(0xff16a34a);
     c.drawRect(Rect.fromLTWH(0, s.height * .40, s.width, s.height * .60), Paint()..color = ground);
   }
 
@@ -495,14 +550,13 @@ class RoadPainter extends CustomPainter {
 
   void drawRoadDetails(Canvas c, Size s) {
     for (var i = 0; i < 20; i++) {
-      final d = (((i * 58 + tick * 7) % 820) / 820).clamp(.025, .99).toDouble();
+      final d = (((i * 58 + tick * (5 + throttle * 5).round()) % 820) / 820).clamp(.025, .99).toDouble();
       final y = yOf(s, d);
       final rw = roadW(s, d);
       final left = s.width * .5 - rw / 2;
       final right = s.width * .5 + rw / 2;
       final v = vis(d);
-      final stripeColor = (i.isEven ? Colors.white : Colors.redAccent).withOpacity(v * (weather == 'ليل' ? .42 : .82));
-      final stripe = Paint()..color = stripeColor;
+      final stripe = Paint()..color = (i.isEven ? Colors.white : Colors.redAccent).withOpacity(v * (weather == 'ليل' ? .42 : .82));
       final size = 6 + d * 22;
       c.drawRect(Rect.fromCenter(center: Offset(left - 5 * d, y), width: size, height: 4 + d * 9), stripe);
       c.drawRect(Rect.fromCenter(center: Offset(right + 5 * d, y), width: size, height: 4 + d * 9), stripe);
@@ -547,11 +601,20 @@ class RoadPainter extends CustomPainter {
     drawSuperCar(c, Offset(laneX(s, playerLane, .88), s.height * .84), s.width * .145, const Color(0xff38bdf8), false, 1);
   }
 
+  void drawSpeedFx(Canvas c, Size s) {
+    if (throttle < .58) return;
+    final p = Paint()..color = Colors.cyanAccent.withOpacity((throttle - .55) * .18);
+    for (var i = 0; i < 10; i++) {
+      final x = (i * 43 + tick * 9) % s.width;
+      final y = s.height * (.48 + (i % 5) * .11);
+      c.drawLine(Offset(x.toDouble(), y), Offset(x.toDouble() - 18 - throttle * 24, y + 18 + throttle * 18), p..strokeWidth = 1.5 + throttle * 2);
+    }
+  }
+
   void drawSuperCar(Canvas c, Offset o, double w, Color body, bool opponent, double opacity) {
     final h = w * .66;
     c.drawRRect(RRect.fromRectAndRadius(Rect.fromCenter(center: o.translate(0, h * .22), width: w * 1.22, height: h * .62), Radius.circular(w * .35)), Paint()..color = Colors.black.withOpacity(.36 * opacity));
-    final glow = Paint()..color = body.withOpacity(.10 * opacity)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10);
-    c.drawOval(Rect.fromCenter(center: o, width: w * 1.22, height: h * .95), glow);
+    c.drawOval(Rect.fromCenter(center: o, width: w * 1.22, height: h * .95), Paint()..color = body.withOpacity(.10 * opacity)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10));
     final bodyPath = Path()
       ..moveTo(o.dx - w * .56, o.dy + h * .12)
       ..quadraticBezierTo(o.dx - w * .50, o.dy - h * .22, o.dx - w * .28, o.dy - h * .40)
@@ -579,16 +642,12 @@ class RoadPainter extends CustomPainter {
     final lamp = Paint()..color = (opponent ? const Color(0xfffff176) : const Color(0xffef4444)).withOpacity(opacity);
     c.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(o.dx - w * .39, o.dy + h * .26, w * .25, h * .08), const Radius.circular(2)), lamp);
     c.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(o.dx + w * .14, o.dy + h * .26, w * .25, h * .08), const Radius.circular(2)), lamp);
-    if (!opponent) {
-      c.drawRRect(RRect.fromRectAndRadius(Rect.fromCenter(center: o.translate(0, h * .44), width: w * .44, height: h * .055), Radius.circular(w * .03)), Paint()..color = const Color(0xff020617).withOpacity(.85));
-    }
+    if (!opponent) c.drawRRect(RRect.fromRectAndRadius(Rect.fromCenter(center: o.translate(0, h * .44), width: w * .44, height: h * .055), Radius.circular(w * .03)), Paint()..color = const Color(0xff020617).withOpacity(.85));
   }
 
   void drawWeather(Canvas c, Size s) {
     if (weather == 'ليل') c.drawRect(Offset.zero & s, Paint()..color = Colors.black.withOpacity(.30));
-    if (weather == 'ضباب') {
-      c.drawRect(Offset.zero & s, Paint()..shader = const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xCCFFFFFF), Color(0x66FFFFFF), Color(0x18FFFFFF)]).createShader(Offset.zero & s));
-    }
+    if (weather == 'ضباب') c.drawRect(Offset.zero & s, Paint()..shader = const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xCCFFFFFF), Color(0x66FFFFFF), Color(0x18FFFFFF)]).createShader(Offset.zero & s));
     if (weather == 'مطر') {
       c.drawRect(Offset.zero & s, Paint()..color = Colors.blueGrey.withOpacity(.13));
       for (var i = 0; i < 86; i++) {
@@ -611,9 +670,7 @@ class RoadPainter extends CustomPainter {
   void drawPostFx(Canvas c, Size s) {
     c.drawRect(Offset.zero & s, Paint()..style = PaintingStyle.stroke..strokeWidth = 14..color = Colors.black.withOpacity(.20));
     final scan = Paint()..color = Colors.black.withOpacity(.040);
-    for (double y = 0; y < s.height; y += 5) {
-      c.drawRect(Rect.fromLTWH(0, y, s.width, 1), scan);
-    }
+    for (double y = 0; y < s.height; y += 5) c.drawRect(Rect.fromLTWH(0, y, s.width, 1), scan);
   }
 
   @override
