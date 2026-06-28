@@ -13,7 +13,7 @@ class RetroApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'ألعاب زمان V4.6',
+      title: 'ألعاب زمان V4.7',
       theme: ThemeData.dark(useMaterial3: true).copyWith(
         scaffoldBackgroundColor: const Color(0xff040816),
         appBarTheme: const AppBarTheme(centerTitle: true, backgroundColor: Color(0xff07111f)),
@@ -72,14 +72,14 @@ class Home extends StatelessWidget {
             padding: const EdgeInsets.all(18),
             child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
               const SizedBox(height: 18),
-              const Text('ألعاب زمان V4.6', textAlign: TextAlign.center, style: TextStyle(fontSize: 35, fontWeight: FontWeight.w900, letterSpacing: .5)),
+              const Text('ألعاب زمان V4.7', textAlign: TextAlign.center, style: TextStyle(fontSize: 35, fontWeight: FontWeight.w900, letterSpacing: .5)),
               const SizedBox(height: 8),
-              const Text('تحكم سرعة بالسحب للأعلى والأسفل + مؤثرات صوتية أكثر', textAlign: TextAlign.center, style: TextStyle(color: Colors.white70)),
+              const Text('تحكم كامل بالسحب: يمين ويسار للمسار، أعلى وأسفل للسرعة', textAlign: TextAlign.center, style: TextStyle(color: Colors.white70)),
               const SizedBox(height: 28),
               _Tile(
                 title: 'طريق التحمل',
                 icon: '🏎️',
-                text: 'اسحب داخل الشاشة للأعلى للتسارع، وللأسفل لتخفيف السرعة.',
+                text: 'بدون أزرار يمين/يسار. كل التحكم من شاشة اللعب بالسحب.',
                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const Directionality(textDirection: TextDirection.rtl, child: RoadGame()))),
               ),
               const SizedBox(height: 16),
@@ -167,6 +167,8 @@ class _RoadGameState extends State<RoadGame> {
   int lives = 3;
   int distance = 0;
   double throttle = .55;
+  double _gestureDx = 0;
+  double _gestureDy = 0;
   bool running = false;
   bool stopped = false;
   bool gameOver = false;
@@ -197,6 +199,8 @@ class _RoadGameState extends State<RoadGame> {
     lives = 3;
     distance = 0;
     throttle = .55;
+    _gestureDx = 0;
+    _gestureDy = 0;
     cars.clear();
     running = true;
     stopped = false;
@@ -276,8 +280,43 @@ class _RoadGameState extends State<RoadGame> {
     setState(() {});
   }
 
-  void onVerticalDrag(DragUpdateDetails d) {
-    changeThrottle((-d.delta.dy) / 230);
+  void onPanStart(DragStartDetails details) {
+    _gestureDx = 0;
+    _gestureDy = 0;
+  }
+
+  void onPanUpdate(DragUpdateDetails details) {
+    if (!running) return;
+    _gestureDx += details.delta.dx;
+    _gestureDy += details.delta.dy;
+    final absX = _gestureDx.abs();
+    final absY = _gestureDy.abs();
+
+    if (absX > absY && absX > 26) {
+      if (_gestureDx > 0) {
+        right();
+      } else {
+        left();
+      }
+      _gestureDx = 0;
+      _gestureDy = 0;
+      return;
+    }
+
+    if (absY > absX && absY > 18) {
+      if (_gestureDy < 0) {
+        changeThrottle(.06);
+      } else {
+        changeThrottle(-.06);
+      }
+      _gestureDx = 0;
+      _gestureDy = 0;
+    }
+  }
+
+  void onPanEnd(DragEndDetails details) {
+    _gestureDx = 0;
+    _gestureDy = 0;
   }
 
   void left() {
@@ -306,13 +345,13 @@ class _RoadGameState extends State<RoadGame> {
   Widget build(BuildContext context) {
     final overlay = !running || stopped || gameOver;
     final title = gameOver ? 'انتهت اللعبة' : stopped ? 'اصطدام!' : 'طريق التحمل';
-    final sub = gameOver ? 'النقاط: $score' : stopped ? 'تبقى لديك $lives أرواح — تابع من نفس الجولة' : 'اسحب للأعلى لزيادة السرعة وللأسفل للتخفيف';
+    final sub = gameOver ? 'النقاط: $score' : stopped ? 'تبقى لديك $lives أرواح — تابع من نفس الجولة' : 'اسحب يمين/يسار للمسار، وأعلى/أسفل للسرعة';
     return Scaffold(
-      appBar: AppBar(title: const Text('طريق التحمل V4.6')),
+      appBar: AppBar(title: const Text('طريق التحمل V4.7')),
       body: SafeArea(child: Column(children: [
         _Hud(score: score, day: day, lives: lives, passed: passed, target: target, weather: weather, speed: speedKmh, throttle: throttle),
         Expanded(child: Container(
-          margin: const EdgeInsets.symmetric(horizontal: 10),
+          margin: const EdgeInsets.fromLTRB(10, 0, 10, 12),
           clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(24),
@@ -321,7 +360,9 @@ class _RoadGameState extends State<RoadGame> {
           ),
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
-            onVerticalDragUpdate: onVerticalDrag,
+            onPanStart: onPanStart,
+            onPanUpdate: onPanUpdate,
+            onPanEnd: onPanEnd,
             child: Stack(children: [
               CustomPaint(painter: RoadPainter(playerLane: lane, cars: cars, weather: weather, tick: tick, throttle: throttle), child: const SizedBox.expand()),
               Positioned(right: 12, bottom: 14, child: _ThrottlePad(throttle: throttle, speed: speedKmh, onUp: () => changeThrottle(.08), onDown: () => changeThrottle(-.08))),
@@ -330,11 +371,6 @@ class _RoadGameState extends State<RoadGame> {
             ]),
           ),
         )),
-        Padding(padding: const EdgeInsets.fromLTRB(14, 10, 14, 12), child: Row(textDirection: TextDirection.ltr, children: [
-          Expanded(child: RetroButton(text: 'يسار', icon: Icons.arrow_back, onTap: left)),
-          const SizedBox(width: 12),
-          Expanded(child: RetroButton(text: 'يمين', icon: Icons.arrow_forward, onTap: right)),
-        ])),
       ])),
     );
   }
@@ -409,7 +445,7 @@ class _HintBox extends StatelessWidget {
   Widget build(BuildContext context) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(color: Colors.black.withOpacity(.34), borderRadius: BorderRadius.circular(14), border: Border.all(color: Colors.white12)),
-        child: const Text('اسحب ↑ سرعة\nاسحب ↓ تهدئة', style: TextStyle(fontSize: 11, color: Colors.white70)),
+        child: const Text('← → تغيير المسار\n↑ تسارع\n↓ تهدئة', style: TextStyle(fontSize: 11, color: Colors.white70)),
       );
 }
 
