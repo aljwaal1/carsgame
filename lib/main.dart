@@ -6,17 +6,17 @@ import 'package:flutter/material.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const RetroV42App());
+  runApp(const RetroV43App());
 }
 
-class RetroV42App extends StatelessWidget {
-  const RetroV42App({super.key});
+class RetroV43App extends StatelessWidget {
+  const RetroV43App({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'ألعاب زمان V4.2',
+      title: 'ألعاب زمان V4.3',
       theme: ThemeData.dark(useMaterial3: true).copyWith(
         scaffoldBackgroundColor: const Color(0xff07111f),
         appBarTheme: const AppBarTheme(centerTitle: true, backgroundColor: Color(0xff0b1220)),
@@ -42,6 +42,7 @@ class Sfx {
   static void fuel() => play('sounds/fuel_plane/fuel_pickup.wav');
   static void boom() => play('sounds/fuel_plane/plane_explosion.wav');
   static void pass() => play('sounds/retro_road/car_pass.wav', volume: 0.42);
+  static void steer() => play('sounds/retro_road/car_pass.wav', volume: 0.24);
   static void stage() => play('sounds/retro_road/stage_clear.wav');
   static void shot(int tick) {
     if (tick - _lastShotTick > 10) {
@@ -59,40 +60,33 @@ class HomeScreen extends StatelessWidget {
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xff020617), Color(0xff0f172a), Color(0xff082f49)],
-          ),
+          gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xff020617), Color(0xff0f172a), Color(0xff082f49)]),
         ),
         child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.all(18),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const SizedBox(height: 8),
-                const Text('ألعاب زمان V4.2', textAlign: TextAlign.center, style: TextStyle(fontSize: 34, fontWeight: FontWeight.w900)),
-                const SizedBox(height: 6),
-                const Text('تحسين رسومات السيارات والطريق والمنظور', textAlign: TextAlign.center, style: TextStyle(color: Colors.white70)),
-                const SizedBox(height: 28),
-                GameTile(
-                  title: 'طائرة الوقود',
-                  icon: '✈️',
-                  text: 'إطلاق تلقائي وتحكم بالسحب أو الشريط.',
-                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const Directionality(textDirection: TextDirection.rtl, child: PlaneGame()))),
-                ),
-                const SizedBox(height: 16),
-                GameTile(
-                  title: 'طريق التحمل',
-                  icon: '🏎️',
-                  text: 'أنت تلحق السيارات أمامك وتتجاوزها. رسومات أوضح وطريق أوسع.',
-                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const Directionality(textDirection: TextDirection.rtl, child: RoadGame()))),
-                ),
-                const Spacer(),
-                const Text('نسخة أصلية بروح ألعاب التحمل القديمة.', textAlign: TextAlign.center, style: TextStyle(color: Colors.white38, fontSize: 12)),
-              ],
-            ),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              const SizedBox(height: 8),
+              const Text('ألعاب زمان V4.3', textAlign: TextAlign.center, style: TextStyle(fontSize: 34, fontWeight: FontWeight.w900)),
+              const SizedBox(height: 6),
+              const Text('أزرار صحيحة، صوت حركة، 3 أرواح، وسيارة رياضية أوضح', textAlign: TextAlign.center, style: TextStyle(color: Colors.white70)),
+              const SizedBox(height: 28),
+              GameTile(
+                title: 'طائرة الوقود',
+                icon: '✈️',
+                text: 'إطلاق تلقائي وتحكم بالسحب أو الشريط.',
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const Directionality(textDirection: TextDirection.rtl, child: PlaneGame()))),
+              ),
+              const SizedBox(height: 16),
+              GameTile(
+                title: 'طريق التحمل',
+                icon: '🏎️',
+                text: 'ثلاث أرواح، استكمال بعد الاصطدام، وشكل سيارة رياضي أعرض.',
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const Directionality(textDirection: TextDirection.rtl, child: RoadGame()))),
+              ),
+              const Spacer(),
+              const Text('نسخة أصلية بروح ألعاب التحمل القديمة.', textAlign: TextAlign.center, style: TextStyle(color: Colors.white38, fontSize: 12)),
+            ]),
           ),
         ),
       ),
@@ -114,28 +108,17 @@ class GameTile extends StatelessWidget {
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.08),
-          borderRadius: BorderRadius.circular(28),
-          border: Border.all(color: Colors.white12),
-        ),
-        child: Row(
-          children: [
-            Text(icon, style: const TextStyle(fontSize: 42)),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900)),
-                  const SizedBox(height: 6),
-                  Text(text, style: const TextStyle(color: Colors.white70)),
-                ],
-              ),
-            ),
-            const Icon(Icons.play_circle_fill, size: 34, color: Colors.lightBlueAccent),
-          ],
-        ),
+        decoration: BoxDecoration(color: Colors.white.withOpacity(0.08), borderRadius: BorderRadius.circular(28), border: Border.all(color: Colors.white12)),
+        child: Row(children: [
+          Text(icon, style: const TextStyle(fontSize: 42)),
+          const SizedBox(width: 16),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(title, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900)),
+            const SizedBox(height: 6),
+            Text(text, style: const TextStyle(color: Colors.white70)),
+          ])),
+          const Icon(Icons.play_circle_fill, size: 34, color: Colors.lightBlueAccent),
+        ]),
       ),
     );
   }
@@ -153,18 +136,16 @@ class RetroButton extends StatelessWidget {
       onPressed: onTap,
       icon: Icon(icon ?? Icons.play_arrow),
       label: Text(text, style: const TextStyle(fontWeight: FontWeight.w900)),
-      style: ElevatedButton.styleFrom(
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-      ),
+      style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18))),
     );
   }
 }
 
 class StartCard extends StatelessWidget {
-  const StartCard({super.key, required this.title, required this.subtitle, required this.onTap});
+  const StartCard({super.key, required this.title, required this.subtitle, required this.onTap, this.buttonText = 'ابدأ'});
   final String title;
   final String subtitle;
+  final String buttonText;
   final VoidCallback onTap;
 
   @override
@@ -172,21 +153,14 @@ class StartCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.all(22),
       padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.70),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white24),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(title, textAlign: TextAlign.center, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900)),
-          const SizedBox(height: 8),
-          Text(subtitle, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70)),
-          const SizedBox(height: 18),
-          RetroButton(text: 'ابدأ', icon: Icons.play_arrow, onTap: onTap),
-        ],
-      ),
+      decoration: BoxDecoration(color: Colors.black.withOpacity(0.70), borderRadius: BorderRadius.circular(24), border: Border.all(color: Colors.white24)),
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Text(title, textAlign: TextAlign.center, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900)),
+        const SizedBox(height: 8),
+        Text(subtitle, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70)),
+        const SizedBox(height: 18),
+        RetroButton(text: buttonText, icon: Icons.play_arrow, onTap: onTap),
+      ]),
     );
   }
 }
@@ -196,10 +170,7 @@ class PixelArt {
     final maxCols = rows.map((e) => e.length).fold<int>(0, math.max);
     final origin = Offset(center.dx - maxCols * px / 2, center.dy - rows.length * px / 2);
     if (shadow > 0) {
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(Rect.fromLTWH(origin.dx + shadow, origin.dy + shadow, maxCols * px, rows.length * px), Radius.circular(px)),
-        Paint()..color = Colors.black.withOpacity(0.36),
-      );
+      canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(origin.dx + shadow, origin.dy + shadow, maxCols * px, rows.length * px), Radius.circular(px)), Paint()..color = Colors.black.withOpacity(0.36));
     }
     for (var y = 0; y < rows.length; y++) {
       for (var x = 0; x < rows[y].length; x++) {
@@ -280,12 +251,8 @@ class _PlaneGameState extends State<PlaneGame> {
       final kind = r < 0.27 ? 0 : r < 0.76 ? 1 : 2;
       objects.add(PlaneObj(x: 0.12 + rnd.nextDouble() * 0.76, y: -0.08, kind: kind, size: kind == 0 ? 0.048 : 0.062));
     }
-    for (final b in bullets) {
-      b.y -= 0.034;
-    }
-    for (final o in objects) {
-      o.y += speed;
-    }
+    for (final b in bullets) b.y -= 0.034;
+    for (final o in objects) o.y += speed;
     bullets.removeWhere((b) => b.y < -0.05);
     objects.removeWhere((o) => o.y > 1.12);
 
@@ -344,68 +311,40 @@ class _PlaneGameState extends State<PlaneGame> {
     final fuelColor = fuel > 45 ? Colors.greenAccent : fuel > 20 ? Colors.orangeAccent : Colors.redAccent;
     return Scaffold(
       appBar: AppBar(title: const Text('طائرة الوقود')),
-      body: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      Text('النقاط: $score', style: const TextStyle(fontWeight: FontWeight.w900)),
-                      Text('المسافة: ${distance ~/ 30}'),
-                      Text('مرحلة: $level'),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(20),
-                    child: LinearProgressIndicator(
-                      value: fuel.clamp(0, 100).toDouble() / 100,
-                      minHeight: 12,
-                      valueColor: AlwaysStoppedAnimation(fuelColor),
-                      backgroundColor: Colors.white12,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: Container(
-                margin: const EdgeInsets.symmetric(horizontal: 12),
-                clipBehavior: Clip.antiAlias,
-                decoration: BoxDecoration(borderRadius: BorderRadius.circular(22), border: Border.all(color: Colors.white12)),
-                child: LayoutBuilder(
-                  builder: (context, c) => GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onPanDown: (d) => setPlane(d.localPosition.dx / c.maxWidth),
-                    onPanUpdate: (d) => setPlane(d.localPosition.dx / c.maxWidth),
-                    child: Stack(
-                      children: [
-                        CustomPaint(painter: PlanePainter(planeX: planeX, objects: objects, bullets: bullets, tick: tick), child: const SizedBox.expand()),
-                        if (!running) Center(child: StartCard(title: gameOver ? 'انتهت الجولة' : 'طائرة الوقود', subtitle: gameOver ? 'النقاط: $score' : 'إطلاق تلقائي وتحكم بالسحب أو الشريط', onTap: start)),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            Container(
-              margin: const EdgeInsets.fromLTRB(14, 10, 14, 12),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(color: Colors.white.withOpacity(0.07), borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.white12)),
-              child: Column(
-                children: [
-                  const Text('شريط تحكم مثل الماوس', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold)),
-                  Slider(value: planeX.clamp(0.08, 0.92).toDouble(), min: 0.08, max: 0.92, onChanged: running ? setPlane : null),
-                ],
-              ),
-            ),
-          ],
+      body: SafeArea(child: Column(children: [
+        Padding(padding: const EdgeInsets.all(12), child: Column(children: [
+          Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
+            Text('النقاط: $score', style: const TextStyle(fontWeight: FontWeight.w900)),
+            Text('المسافة: ${distance ~/ 30}'),
+            Text('مرحلة: $level'),
+          ]),
+          const SizedBox(height: 8),
+          ClipRRect(borderRadius: BorderRadius.circular(20), child: LinearProgressIndicator(value: fuel.clamp(0, 100).toDouble() / 100, minHeight: 12, valueColor: AlwaysStoppedAnimation(fuelColor), backgroundColor: Colors.white12)),
+        ])),
+        Expanded(child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 12),
+          clipBehavior: Clip.antiAlias,
+          decoration: BoxDecoration(borderRadius: BorderRadius.circular(22), border: Border.all(color: Colors.white12)),
+          child: LayoutBuilder(builder: (context, c) => GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onPanDown: (d) => setPlane(d.localPosition.dx / c.maxWidth),
+            onPanUpdate: (d) => setPlane(d.localPosition.dx / c.maxWidth),
+            child: Stack(children: [
+              CustomPaint(painter: PlanePainter(planeX: planeX, objects: objects, bullets: bullets, tick: tick), child: const SizedBox.expand()),
+              if (!running) Center(child: StartCard(title: gameOver ? 'انتهت الجولة' : 'طائرة الوقود', subtitle: gameOver ? 'النقاط: $score' : 'إطلاق تلقائي وتحكم بالسحب أو الشريط', onTap: start)),
+            ]),
+          )),
+        )),
+        Container(
+          margin: const EdgeInsets.fromLTRB(14, 10, 14, 12),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(color: Colors.white.withOpacity(0.07), borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.white12)),
+          child: Column(children: [
+            const Text('شريط تحكم مثل الماوس', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold)),
+            Slider(value: planeX.clamp(0.08, 0.92).toDouble(), min: 0.08, max: 0.92, onChanged: running ? setPlane : null),
+          ]),
         ),
-      ),
+      ])),
     );
   }
 }
@@ -443,28 +382,10 @@ class PlanePainter extends CustomPainter {
       c.drawCircle(o, 5, Paint()..color = const Color(0xfffff176));
       c.drawCircle(o, 11, Paint()..color = const Color(0xfffff176).withOpacity(0.15));
     }
-    for (final o in objects) {
-      _drawObject(c, s, o);
-    }
-    PixelArt.draw(c, Offset(planeX * w, h * 0.80), math.max(4.0, w * 0.014), const [
-      '.....C.....',
-      '....CCC....',
-      '....YYY....',
-      'B..YYYYY..B',
-      'BBYYYYYYYBB',
-      '..RYYYR..',
-      '...Y.Y...',
-      '..B...B..',
-    ], {
-      'C': const Color(0xffe0f2fe),
-      'Y': const Color(0xff38bdf8),
-      'B': const Color(0xff2563eb),
-      'R': const Color(0xffef4444),
-    }, shadow: 5);
+    for (final o in objects) _drawObject(c, s, o);
+    PixelArt.draw(c, Offset(planeX * w, h * 0.80), math.max(4.0, w * 0.014), const ['.....C.....', '....CCC....', '....YYY....', 'B..YYYYY..B', 'BBYYYYYYYBB', '..RYYYR..', '...Y.Y...', '..B...B..'], {'C': const Color(0xffe0f2fe), 'Y': const Color(0xff38bdf8), 'B': const Color(0xff2563eb), 'R': const Color(0xffef4444)}, shadow: 5);
     final scan = Paint()..color = Colors.black.withOpacity(0.08);
-    for (double y = 0; y < h; y += 5) {
-      c.drawRect(Rect.fromLTWH(0, y, w, 1), scan);
-    }
+    for (double y = 0; y < h; y += 5) c.drawRect(Rect.fromLTWH(0, y, w, 1), scan);
   }
 
   void _drawObject(Canvas c, Size s, PlaneObj o) {
@@ -507,8 +428,10 @@ class _RoadGameState extends State<RoadGame> {
   int target = 40;
   int day = 1;
   int tick = 0;
+  int lives = 3;
   bool running = false;
   bool gameOver = false;
+  bool crashed = false;
   final opponents = <RoadOpponent>[];
   final colors = const [Color(0xffef4444), Color(0xffffd166), Color(0xff22c55e), Color(0xffa78bfa), Color(0xfff97316)];
 
@@ -531,11 +454,21 @@ class _RoadGameState extends State<RoadGame> {
     target = 40;
     day = 1;
     tick = 0;
+    lives = 3;
     running = true;
     gameOver = false;
+    crashed = false;
     opponents.clear();
     Sfx.start();
     timer = Timer.periodic(const Duration(milliseconds: 33), (_) => step());
+    setState(() {});
+  }
+
+  void resumeAfterCrash() {
+    if (gameOver) return;
+    crashed = false;
+    running = true;
+    Sfx.start();
     setState(() {});
   }
 
@@ -549,13 +482,9 @@ class _RoadGameState extends State<RoadGame> {
     if (rnd.nextDouble() < spawn && opponents.length < 5) {
       final lane = rnd.nextInt(5);
       final close = opponents.any((o) => o.lane == lane && o.depth < 0.24);
-      if (!close) {
-        opponents.add(RoadOpponent(lane: lane, depth: 0.045, color: colors[rnd.nextInt(colors.length)], speedBias: 0.82 + rnd.nextDouble() * 0.28));
-      }
+      if (!close) opponents.add(RoadOpponent(lane: lane, depth: 0.045, color: colors[rnd.nextInt(colors.length)], speedBias: 0.82 + rnd.nextDouble() * 0.28));
     }
-    for (final o in opponents) {
-      o.depth += roadSpeed * o.speedBias;
-    }
+    for (final o in opponents) o.depth += roadSpeed * o.speedBias;
     final done = opponents.where((o) => o.depth > 1.08).length;
     if (done > 0) {
       passed += done;
@@ -571,11 +500,20 @@ class _RoadGameState extends State<RoadGame> {
       opponents.clear();
       Sfx.stage();
     }
-    for (final o in opponents) {
+    for (final o in List<RoadOpponent>.from(opponents)) {
       if (o.depth > 0.78 && o.depth < 0.96 && o.lane == playerLane) {
+        opponents.remove(o);
         running = false;
-        gameOver = true;
         Sfx.over();
+        if (lives > 1) {
+          lives--;
+          crashed = true;
+        } else {
+          lives = 0;
+          crashed = false;
+          gameOver = true;
+        }
+        break;
       }
     }
     if (mounted) setState(() {});
@@ -583,13 +521,17 @@ class _RoadGameState extends State<RoadGame> {
 
   void left() {
     if (!running) return;
+    final old = playerLane;
     playerLane = math.max(0, playerLane - 1);
+    if (playerLane != old) Sfx.steer();
     setState(() {});
   }
 
   void right() {
     if (!running) return;
+    final old = playerLane;
     playerLane = math.min(4, playerLane + 1);
+    if (playerLane != old) Sfx.steer();
     setState(() {});
   }
 
@@ -601,66 +543,40 @@ class _RoadGameState extends State<RoadGame> {
 
   @override
   Widget build(BuildContext context) {
+    final overlay = gameOver || crashed || !running;
+    final title = gameOver ? 'انتهت اللعبة' : crashed ? 'اصطدام!' : 'طريق التحمل';
+    final subtitle = gameOver ? 'النقاط: $score' : crashed ? 'تبقى لديك $lives أرواح — تابع من نفس الجولة' : 'أنت تلحق السيارات أمامك وتتجاوزها. الهدف: $target سيارة';
+    final action = gameOver || (!running && !crashed) ? start : resumeAfterCrash;
+    final buttonText = crashed ? 'تابع' : 'ابدأ';
     return Scaffold(
-      appBar: AppBar(title: const Text('طريق التحمل V4.2')),
-      body: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      Text('النقاط: $score', style: const TextStyle(fontWeight: FontWeight.w900)),
-                      Text('اليوم: $day'),
-                      Text('تجاوز: $passed / $target'),
-                    ],
-                  ),
-                  const SizedBox(height: 7),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(20),
-                    child: LinearProgressIndicator(value: (passed / target).clamp(0, 1).toDouble(), minHeight: 10, backgroundColor: Colors.white12),
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: Container(
-                margin: const EdgeInsets.symmetric(horizontal: 12),
-                clipBehavior: Clip.antiAlias,
-                decoration: BoxDecoration(borderRadius: BorderRadius.circular(22), border: Border.all(color: Colors.white12)),
-                child: Stack(
-                  children: [
-                    CustomPaint(painter: RoadPainter(playerLane: playerLane, opponents: opponents, weather: weather, tick: tick, day: day), child: const SizedBox.expand()),
-                    Positioned(
-                      top: 10,
-                      left: 12,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(color: Colors.black.withOpacity(0.35), borderRadius: BorderRadius.circular(14)),
-                        child: Text(weather, style: const TextStyle(fontWeight: FontWeight.bold)),
-                      ),
-                    ),
-                    if (!running) Center(child: StartCard(title: gameOver ? 'حادث!' : 'طريق التحمل', subtitle: gameOver ? 'النقاط: $score' : 'أنت تلحق السيارات أمامك وتتجاوزها. الهدف: $target سيارة', onTap: start)),
-                  ],
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
-              child: Row(
-                children: [
-                  Expanded(child: RetroButton(text: 'يسار', icon: Icons.keyboard_arrow_right, onTap: left)),
-                  const SizedBox(width: 12),
-                  Expanded(child: RetroButton(text: 'يمين', icon: Icons.keyboard_arrow_left, onTap: right)),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
+      appBar: AppBar(title: const Text('طريق التحمل V4.3')),
+      body: SafeArea(child: Column(children: [
+        Padding(padding: const EdgeInsets.fromLTRB(12, 8, 12, 8), child: Column(children: [
+          Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
+            Text('النقاط: $score', style: const TextStyle(fontWeight: FontWeight.w900)),
+            Text('اليوم: $day'),
+            Text('الأرواح: $lives'),
+            Text('تجاوز: $passed / $target'),
+          ]),
+          const SizedBox(height: 7),
+          ClipRRect(borderRadius: BorderRadius.circular(20), child: LinearProgressIndicator(value: (passed / target).clamp(0, 1).toDouble(), minHeight: 10, backgroundColor: Colors.white12)),
+        ])),
+        Expanded(child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 12),
+          clipBehavior: Clip.antiAlias,
+          decoration: BoxDecoration(borderRadius: BorderRadius.circular(22), border: Border.all(color: Colors.white12)),
+          child: Stack(children: [
+            CustomPaint(painter: RoadPainter(playerLane: playerLane, opponents: opponents, weather: weather, tick: tick, day: day), child: const SizedBox.expand()),
+            Positioned(top: 10, left: 12, child: Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), decoration: BoxDecoration(color: Colors.black.withOpacity(0.35), borderRadius: BorderRadius.circular(14)), child: Text(weather, style: const TextStyle(fontWeight: FontWeight.bold)))),
+            if (overlay) Center(child: StartCard(title: title, subtitle: subtitle, buttonText: buttonText, onTap: action)),
+          ]),
+        )),
+        Padding(padding: const EdgeInsets.fromLTRB(14, 10, 14, 12), child: Row(textDirection: TextDirection.ltr, children: [
+          Expanded(child: RetroButton(text: 'يسار', icon: Icons.arrow_back, onTap: left)),
+          const SizedBox(width: 12),
+          Expanded(child: RetroButton(text: 'يمين', icon: Icons.arrow_forward, onTap: right)),
+        ])),
+      ])),
     );
   }
 }
@@ -691,9 +607,7 @@ class RoadPainter extends CustomPainter {
     _motion(c, s);
     _posts(c, s);
     final sorted = List<RoadOpponent>.from(opponents)..sort((a, b) => a.depth.compareTo(b.depth));
-    for (final o in sorted) {
-      _opponentCar(c, s, o);
-    }
+    for (final o in sorted) _opponentCar(c, s, o);
     _playerCar(c, s);
     _weather(c, s);
     _vignette(c, s);
@@ -702,23 +616,12 @@ class RoadPainter extends CustomPainter {
   void _sky(Canvas c, Size s) {
     late final List<Color> colors;
     switch (weather) {
-      case 'غروب':
-        colors = const [Color(0xff35104f), Color(0xffe11d48), Color(0xfff59e0b)];
-        break;
-      case 'ليل':
-        colors = const [Color(0xff020617), Color(0xff0f172a), Color(0xff1e293b)];
-        break;
-      case 'ضباب':
-        colors = const [Color(0xff64748b), Color(0xffa8b3c4), Color(0xffdbe2eb)];
-        break;
-      case 'ثلج':
-        colors = const [Color(0xff93c5fd), Color(0xffdbeafe), Color(0xffffffff)];
-        break;
-      case 'مطر':
-        colors = const [Color(0xff0f172a), Color(0xff334155), Color(0xff475569)];
-        break;
-      default:
-        colors = const [Color(0xff0ea5e9), Color(0xff67e8f9), Color(0xff86efac)];
+      case 'غروب': colors = const [Color(0xff35104f), Color(0xffe11d48), Color(0xfff59e0b)]; break;
+      case 'ليل': colors = const [Color(0xff020617), Color(0xff0f172a), Color(0xff1e293b)]; break;
+      case 'ضباب': colors = const [Color(0xff64748b), Color(0xffa8b3c4), Color(0xffdbe2eb)]; break;
+      case 'ثلج': colors = const [Color(0xff93c5fd), Color(0xffdbeafe), Color(0xffffffff)]; break;
+      case 'مطر': colors = const [Color(0xff0f172a), Color(0xff334155), Color(0xff475569)]; break;
+      default: colors = const [Color(0xff0ea5e9), Color(0xff67e8f9), Color(0xff86efac)];
     }
     c.drawRect(Offset.zero & s, Paint()..shader = LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: colors).createShader(Offset.zero & s));
     if (weather == 'ليل') {
@@ -805,7 +708,7 @@ class RoadPainter extends CustomPainter {
     final x = _laneX(s, o.lane, o.depth);
     final y = _y(s, o.depth);
     final scale = 0.32 + o.depth * 1.28;
-    _drawCar(c, Offset(x, y), s.width * 0.062 * scale, o.color, true, o.depth);
+    _drawSportCar(c, Offset(x, y), s.width * 0.070 * scale, o.color, true);
   }
 
   void _playerCar(Canvas c, Size s) {
@@ -814,51 +717,53 @@ class RoadPainter extends CustomPainter {
     if (weather == 'ليل' || weather == 'ضباب' || weather == 'مطر') {
       final lightOpacity = weather == 'ضباب' ? 0.20 : 0.14;
       final light = Path()
-        ..moveTo(x - 18, y - 18)
-        ..lineTo(x - s.width * 0.20, y - s.height * 0.30)
-        ..lineTo(x + s.width * 0.20, y - s.height * 0.30)
-        ..lineTo(x + 18, y - 18)
+        ..moveTo(x - 26, y - 10)
+        ..lineTo(x - s.width * 0.23, y - s.height * 0.28)
+        ..lineTo(x + s.width * 0.23, y - s.height * 0.28)
+        ..lineTo(x + 26, y - 10)
         ..close();
       c.drawPath(light, Paint()..color = const Color(0xfffff3b0).withOpacity(lightOpacity));
     }
-    _drawCar(c, Offset(x, y), s.width * 0.092, const Color(0xff38bdf8), false, 0.95);
+    _drawSportCar(c, Offset(x, y), s.width * 0.115, const Color(0xff38bdf8), false);
   }
 
-  void _drawCar(Canvas c, Offset center, double width, Color body, bool opponent, double depth) {
-    final height = width * 1.55;
-    final shadow = RRect.fromRectAndRadius(Rect.fromCenter(center: center.translate(0, height * 0.16), width: width * 1.18, height: height * 0.86), Radius.circular(width * 0.22));
-    c.drawRRect(shadow, Paint()..color = Colors.black.withOpacity(0.32));
+  void _drawSportCar(Canvas c, Offset center, double width, Color body, bool opponent) {
+    final height = width * 0.95;
+    final shadow = RRect.fromRectAndRadius(Rect.fromCenter(center: center.translate(0, height * 0.18), width: width * 1.22, height: height * 0.78), Radius.circular(width * 0.28));
+    c.drawRRect(shadow, Paint()..color = Colors.black.withOpacity(0.35));
 
     final bodyPath = Path()
-      ..moveTo(center.dx, center.dy - height * 0.54)
-      ..lineTo(center.dx - width * 0.42, center.dy - height * 0.30)
-      ..lineTo(center.dx - width * 0.50, center.dy + height * 0.36)
-      ..quadraticBezierTo(center.dx, center.dy + height * 0.58, center.dx + width * 0.50, center.dy + height * 0.36)
-      ..lineTo(center.dx + width * 0.42, center.dy - height * 0.30)
+      ..moveTo(center.dx - width * 0.50, center.dy + height * 0.23)
+      ..lineTo(center.dx - width * 0.40, center.dy - height * 0.34)
+      ..quadraticBezierTo(center.dx - width * 0.20, center.dy - height * 0.54, center.dx, center.dy - height * 0.58)
+      ..quadraticBezierTo(center.dx + width * 0.20, center.dy - height * 0.54, center.dx + width * 0.40, center.dy - height * 0.34)
+      ..lineTo(center.dx + width * 0.50, center.dy + height * 0.23)
+      ..quadraticBezierTo(center.dx + width * 0.22, center.dy + height * 0.45, center.dx, center.dy + height * 0.48)
+      ..quadraticBezierTo(center.dx - width * 0.22, center.dy + height * 0.45, center.dx - width * 0.50, center.dy + height * 0.23)
       ..close();
     c.drawPath(bodyPath, Paint()..color = body);
     c.drawPath(bodyPath, Paint()..style = PaintingStyle.stroke..strokeWidth = math.max(1.2, width * 0.045)..color = Colors.white.withOpacity(0.55));
 
-    final hood = Path()
-      ..moveTo(center.dx, center.dy - height * 0.48)
-      ..lineTo(center.dx - width * 0.24, center.dy - height * 0.23)
-      ..lineTo(center.dx + width * 0.24, center.dy - height * 0.23)
+    final nose = Path()
+      ..moveTo(center.dx, center.dy - height * 0.50)
+      ..lineTo(center.dx - width * 0.22, center.dy - height * 0.08)
+      ..lineTo(center.dx + width * 0.22, center.dy - height * 0.08)
       ..close();
-    c.drawPath(hood, Paint()..color = Colors.white.withOpacity(0.18));
+    c.drawPath(nose, Paint()..color = Colors.white.withOpacity(0.18));
 
-    final cabin = RRect.fromRectAndRadius(Rect.fromCenter(center: center.translate(0, -height * 0.12), width: width * 0.52, height: height * 0.30), Radius.circular(width * 0.09));
+    final cabin = RRect.fromRectAndRadius(Rect.fromCenter(center: center.translate(0, -height * 0.02), width: width * 0.42, height: height * 0.34), Radius.circular(width * 0.10));
     c.drawRRect(cabin, Paint()..color = const Color(0xffdbeafe));
-    c.drawRRect(cabin, Paint()..style = PaintingStyle.stroke..strokeWidth = 1..color = const Color(0xff0f172a).withOpacity(0.6));
+    c.drawRRect(cabin, Paint()..style = PaintingStyle.stroke..strokeWidth = 1..color = const Color(0xff0f172a).withOpacity(0.60));
 
     final wheel = Paint()..color = const Color(0xff020617);
-    c.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(center.dx - width * 0.60, center.dy - height * 0.20, width * 0.17, height * 0.38), Radius.circular(width * 0.05)), wheel);
-    c.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(center.dx + width * 0.43, center.dy - height * 0.20, width * 0.17, height * 0.38), Radius.circular(width * 0.05)), wheel);
-    c.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(center.dx - width * 0.58, center.dy + height * 0.20, width * 0.17, height * 0.30), Radius.circular(width * 0.05)), wheel);
-    c.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(center.dx + width * 0.41, center.dy + height * 0.20, width * 0.17, height * 0.30), Radius.circular(width * 0.05)), wheel);
+    c.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(center.dx - width * 0.63, center.dy - height * 0.14, width * 0.17, height * 0.34), Radius.circular(width * 0.06)), wheel);
+    c.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(center.dx + width * 0.46, center.dy - height * 0.14, width * 0.17, height * 0.34), Radius.circular(width * 0.06)), wheel);
+    c.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(center.dx - width * 0.58, center.dy + height * 0.20, width * 0.18, height * 0.24), Radius.circular(width * 0.06)), wheel);
+    c.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(center.dx + width * 0.40, center.dy + height * 0.20, width * 0.18, height * 0.24), Radius.circular(width * 0.06)), wheel);
 
     final lamp = Paint()..color = opponent ? const Color(0xfffff176) : const Color(0xffef4444);
-    c.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(center.dx - width * 0.32, center.dy + height * 0.40, width * 0.18, height * 0.07), const Radius.circular(2)), lamp);
-    c.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(center.dx + width * 0.14, center.dy + height * 0.40, width * 0.18, height * 0.07), const Radius.circular(2)), lamp);
+    c.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(center.dx - width * 0.36, center.dy + height * 0.31, width * 0.22, height * 0.08), const Radius.circular(2)), lamp);
+    c.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(center.dx + width * 0.14, center.dy + height * 0.31, width * 0.22, height * 0.08), const Radius.circular(2)), lamp);
   }
 
   void _weather(Canvas c, Size s) {
@@ -880,9 +785,7 @@ class RoadPainter extends CustomPainter {
   void _vignette(Canvas c, Size s) {
     c.drawRect(Offset.zero & s, Paint()..style = PaintingStyle.stroke..strokeWidth = 12..color = Colors.black.withOpacity(0.20));
     final scan = Paint()..color = Colors.black.withOpacity(0.055);
-    for (double y = 0; y < s.height; y += 5) {
-      c.drawRect(Rect.fromLTWH(0, y, s.width, 1), scan);
-    }
+    for (double y = 0; y < s.height; y += 5) c.drawRect(Rect.fromLTWH(0, y, s.width, 1), scan);
   }
 
   @override
