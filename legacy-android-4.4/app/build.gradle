@@ -1,5 +1,19 @@
-plugins { id 'com.android.application' }
-android { namespace 'com.explapp.carsgamelegacy'; compileSdk 33
- defaultConfig { applicationId 'com.explapp.carsgamelegacy'; minSdk 19; targetSdk 28; versionCode 1; versionName '1.0.0-legacy' }
- buildTypes { release { minifyEnabled false } }
+apply plugin: 'com.android.application'
+
+android {
+    compileSdkVersion 30
+
+    defaultConfig {
+        applicationId 'com.explapp.carsgamelegacy'
+        minSdkVersion 19
+        targetSdkVersion 28
+        versionCode 1
+        versionName '1.0.0-legacy'
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+        }
+    }
 }
