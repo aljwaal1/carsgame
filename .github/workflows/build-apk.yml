@@ -1,12 +1,9 @@
-name: Build APK Direct
+name: Build Android 4.4 APK
 
 on:
   workflow_dispatch:
   push:
-    branches:
-      - main
-      - chatgpt-v3-real-retro
-      - v4-from-scratch
+    branches: [ android-4.4 ]
     paths-ignore:
       - 'apk/**'
       - 'DOWNLOAD_APK.md'
@@ -18,10 +15,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout Android 4.4 branch
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref_name }}
+          ref: android-4.4
           fetch-depth: 0
 
       - name: Setup Java 17
@@ -37,15 +34,19 @@ jobs:
 
       - name: Prepare Android
         run: |
-          flutter create --platforms=android --org com.explapp .
+          flutter create --platforms=android --org com.explapp --no-pub .
           rm -rf test
           flutter pub get
 
-      - name: Force package and app name
+      - name: Configure Android app
         run: |
-          sed -i "s/applicationId = \"com.example.retro_games_ar\"/applicationId = \"com.explapp.retrogamesar\"/g" android/app/build.gradle || true
-          sed -i "s/applicationId \"com.example.retro_games_ar\"/applicationId \"com.explapp.retrogamesar\"/g" android/app/build.gradle || true
-          sed -i 's/android:label="retro_games_ar"/android:label="ألعاب زمان V4"/g' android/app/src/main/AndroidManifest.xml || true
+          sed -i 's/applicationId = ".*"/applicationId = "com.explapp.carsgame.legacy"/' android/app/build.gradle.kts || true
+          sed -i 's/applicationId ".*"/applicationId "com.explapp.carsgame.legacy"/' android/app/build.gradle || true
+          sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 19/' android/app/build.gradle.kts || true
+          sed -i 's/minSdk = [0-9][0-9]*/minSdk = 19/' android/app/build.gradle.kts || true
+          sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 19/' android/app/build.gradle || true
+          sed -i 's/minSdkVersion [0-9][0-9]*/minSdkVersion 19/' android/app/build.gradle || true
+          sed -i 's/android:label="[^"]*"/android:label="ألعاب السيارات 4.4"/' android/app/src/main/AndroidManifest.xml || true
 
       - name: Analyze
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
@@ -53,22 +54,23 @@ jobs:
       - name: Build APK
         run: flutter build apk --release --no-tree-shake-icons
 
-      - name: Copy APK
+      - name: Save independent APK
         run: |
           mkdir -p apk
-          cp build/app/outputs/flutter-apk/app-release.apk apk/retro-games-ar.apk
-          cat > DOWNLOAD_APK.md <<TXT
-          # تحميل التطبيق
+          cp build/app/outputs/flutter-apk/app-release.apk apk/carsgame-android-4.4.apk
+          cat > DOWNLOAD_APK.md <<'EOF'
+          # Cars Game — Android 4.4
 
-          APK:
-          https://github.com/${{ github.repository }}/raw/${{ github.ref_name }}/apk/retro-games-ar.apk
-          TXT
+          APK مستقل لفرع Android 4.4:
 
-      - name: Commit APK
+          https://github.com/aljwaal1/carsgame/raw/android-4.4/apk/carsgame-android-4.4.apk
+          EOF
+
+      - name: Commit APK to Android 4.4 branch
         run: |
-          git config --global user.name "github-actions"
-          git config --global user.email "github-actions@github.com"
-          git pull --rebase --autostash origin ${{ github.ref_name }}
-          git add apk/retro-games-ar.apk DOWNLOAD_APK.md
-          git commit -m "Build Retro Games APK" || echo "No changes"
-          git push origin HEAD:${{ github.ref_name }}
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git pull --rebase --autostash origin android-4.4
+          git add apk/carsgame-android-4.4.apk DOWNLOAD_APK.md
+          git commit -m "ci: update Android 4.4 APK" || echo "No changes"
+          git push origin HEAD:android-4.4
