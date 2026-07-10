@@ -16,6 +16,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: android-4.4
 
       - name: Set up Java 17 for Android SDK tools
         uses: actions/setup-java@v4
@@ -61,4 +63,4 @@ jobs:
           git config user.email actions@github.com
           git add apk/carsgame-android-4.4.apk
           git diff --cached --quiet || git commit -m 'Build Cars Game Android 4.4 APK'
-          git push
+          git push origin android-4.4
