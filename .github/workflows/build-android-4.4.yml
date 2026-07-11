@@ -11,6 +11,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: carsgame-android-4-4
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -29,7 +33,9 @@ jobs:
         uses: android-actions/setup-android@v3
 
       - name: Install Android SDK 30
-        run: sdkmanager 'platforms;android-30' 'build-tools;30.0.3'
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager 'platforms;android-30' 'build-tools;30.0.3'
 
       - name: Switch to Java 11 for legacy Gradle
         uses: actions/setup-java@v4
@@ -48,6 +54,7 @@ jobs:
 
       - name: Save APK
         run: |
+          test -f legacy-android-4.4/app/build/outputs/apk/release/app-release.apk
           mkdir -p apk
           cp legacy-android-4.4/app/build/outputs/apk/release/app-release.apk apk/carsgame-android-4.4.apk
 
@@ -60,7 +67,9 @@ jobs:
       - name: Commit APK
         run: |
           git config user.name github-actions
-          git config user.email actions@github.com
+          git config user.email github-actions@github.com
           git add apk/carsgame-android-4.4.apk
-          git diff --cached --quiet || git commit -m 'Build Cars Game Android 4.4 APK'
-          git push origin android-4.4
+          if ! git diff --cached --quiet; then
+            git commit -m 'Build Cars Game Android 4.4 APK'
+            git push origin HEAD:android-4.4
+          fi
