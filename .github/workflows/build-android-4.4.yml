@@ -65,6 +65,20 @@ jobs:
           name: carsgame-android-4.4-build-log
           path: carsgame-build.log
           if-no-files-found: ignore
+      - name: Persist build log on failure
+        if: failure()
+        run: |
+          set -euo pipefail
+          mkdir -p ci-logs
+          cp carsgame-build.log ci-logs/carsgame-android-4.4-failure.log
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add ci-logs/carsgame-android-4.4-failure.log
+          if ! git diff --cached --quiet; then
+            git commit -m 'ci: persist Android 4.4 build failure log'
+            git pull --rebase origin android-4.4
+            git push origin HEAD:android-4.4
+          fi
       - name: Commit APK
         run: |
           set -euo pipefail
