@@ -130,7 +130,6 @@ public final class MainActivity extends Activity {
         }
 
         private void tickRoad() {
-            level=1+passed/target;
             int gap=Math.max(18,48-level*2-(int)(throttle*8));
             if(tick%gap==0&&objects.size()<7){
                 Falling car=new Falling(0,-.08f,.0044f+level*.00035f+throttle*.0036f,0);
