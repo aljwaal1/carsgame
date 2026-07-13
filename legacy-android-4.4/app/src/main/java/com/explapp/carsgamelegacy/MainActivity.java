@@ -70,9 +70,9 @@ public final class MainActivity extends Activity {
         private void drawHome(Canvas c){
             float w=getWidth(),h=getHeight();c.drawColor(0xff07172d);p.setColor(0xff0c2c4e);c.drawCircle(w*.1f,h*.15f,h*.28f,p);c.drawCircle(w*.92f,h*.82f,h*.38f,p);
             label(c,"ألعاب زمان",w*.5f,h*.16f,h*.105f,Color.WHITE,true);label(c,"سيارات وطائرة بروح أركيد أصلية — تعمل دون إنترنت",w*.5f,h*.24f,h*.045f,0xffb8d8ee,false);
-            RectF road=new RectF(w*.055f,h*.31f,w*.485f,h*.79f),plane=new RectF(w*.515f,h*.31f,w*.945f,h*.79f);card(c,road,0xffef6c25);card(c,plane,0xff1687c3);drawMiniCar(c,road.centerX(),road.top()+road.height()*.36f,road.height()*.23f,0xffffd34e);drawMiniPlane(c,plane.centerX(),plane.top()+plane.height()*.36f,plane.height()*.23f,0xffffffff);
-            label(c,"طريق الريترو",road.centerX(),road.top()+road.height()*.72f,h*.067f,Color.WHITE,true);label(c,"الأفضل: "+bestRoad,road.centerX(),road.top()+road.height()*.88f,h*.044f,0xffffedc2,false);
-            label(c,"طائرة الوقود",plane.centerX(),plane.top()+plane.height()*.72f,h*.067f,Color.WHITE,true);label(c,"الأفضل: "+bestPlane,plane.centerX(),plane.top()+plane.height()*.88f,h*.044f,0xffd9f6ff,false);
+            RectF road=new RectF(w*.055f,h*.31f,w*.485f,h*.79f),plane=new RectF(w*.515f,h*.31f,w*.945f,h*.79f);card(c,road,0xffef6c25);card(c,plane,0xff1687c3);drawMiniCar(c,road.centerX(),road.top+road.height()*.36f,road.height()*.23f,0xffffd34e);drawMiniPlane(c,plane.centerX(),plane.top+plane.height()*.36f,plane.height()*.23f,0xffffffff);
+            label(c,"طريق الريترو",road.centerX(),road.top+road.height()*.72f,h*.067f,Color.WHITE,true);label(c,"الأفضل: "+bestRoad,road.centerX(),road.top+road.height()*.88f,h*.044f,0xffffedc2,false);
+            label(c,"طائرة الوقود",plane.centerX(),plane.top+plane.height()*.72f,h*.067f,Color.WHITE,true);label(c,"الأفضل: "+bestPlane,plane.centerX(),plane.top+plane.height()*.88f,h*.044f,0xffd9f6ff,false);
             label(c,"المس البطاقة للبدء  •  حرّك بإصبعك يميناً ويساراً",w*.5f,h*.93f,h*.043f,0xffd7e7f3,false);
         }
         private void drawRoad(Canvas c){
