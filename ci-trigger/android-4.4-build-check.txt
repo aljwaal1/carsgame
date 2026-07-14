@@ -1,1 +1,1 @@
-Trigger Android 4.4 compatibility build after Android SDK 35 repair.
+Trigger full Android 4.4 build after non-blocking diagnostics.
