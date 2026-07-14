@@ -29,16 +29,16 @@ jobs:
           ref: ${{ github.event_name == 'pull_request' && github.head_ref || 'android-4.4' }}
           fetch-depth: 0
 
-      - name: Setup Java 11
+      - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '11'
+          java-version: '17'
 
-      - name: Setup Flutter 3.3.10
+      - name: Setup Flutter 3.19.6
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.3.10'
+          flutter-version: '3.19.6'
           channel: stable
           cache: true
 
@@ -50,7 +50,9 @@ jobs:
           flutter create --platforms=android --org com.explapp .
           rm -rf test
           sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 19/' android/app/build.gradle
+          sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 19/' android/app/build.gradle.kts 2>/dev/null || true
           sed -i 's/applicationId "com.example.retro_games_ar"/applicationId "com.explapp.retrogamesar.legacy"/' android/app/build.gradle
+          sed -i 's/applicationId = "com.example.retro_games_ar"/applicationId = "com.explapp.retrogamesar.legacy"/' android/app/build.gradle.kts 2>/dev/null || true
           sed -i 's/android:label="retro_games_ar"/android:label="ألعاب زمان 4.4"/' android/app/src/main/AndroidManifest.xml
           flutter pub get
 
@@ -58,8 +60,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          grep -n 'minSdkVersion 19' android/app/build.gradle
-          grep -n 'com.explapp.retrogamesar.legacy' android/app/build.gradle
+          grep -RInE 'minSdkVersion 19|minSdk = 19' android/app
+          grep -RIn 'com.explapp.retrogamesar.legacy' android/app
 
       - name: Analyze legacy source
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
