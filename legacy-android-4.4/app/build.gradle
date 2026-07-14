@@ -1,0 +1,19 @@
+apply plugin: 'com.android.application'
+
+android {
+    compileSdkVersion 30
+
+    defaultConfig {
+        applicationId 'com.explapp.carsgamelegacy'
+        minSdkVersion 19
+        targetSdkVersion 28
+        versionCode 3
+        versionName '3.0.0-legacy'
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+        }
+    }
+}
