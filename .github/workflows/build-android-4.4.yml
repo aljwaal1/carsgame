@@ -49,10 +49,14 @@ jobs:
           flutter --version
           flutter create --platforms=android --org com.explapp .
           rm -rf test
-          sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 19/' android/app/build.gradle
-          sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 19/' android/app/build.gradle.kts 2>/dev/null || true
-          sed -i 's/applicationId "com.example.retro_games_ar"/applicationId "com.explapp.retrogamesar.legacy"/' android/app/build.gradle
-          sed -i 's/applicationId = "com.example.retro_games_ar"/applicationId = "com.explapp.retrogamesar.legacy"/' android/app/build.gradle.kts 2>/dev/null || true
+          if [ -f android/app/build.gradle ]; then
+            sed -Ei 's/minSdkVersion[[:space:]]+flutter\.minSdkVersion/minSdkVersion 19/' android/app/build.gradle
+            sed -Ei 's/applicationId[[:space:]]+"[^"]+"/applicationId "com.explapp.retrogamesar.legacy"/' android/app/build.gradle
+          fi
+          if [ -f android/app/build.gradle.kts ]; then
+            sed -Ei 's/minSdk[[:space:]]*=[[:space:]]*flutter\.minSdkVersion/minSdk = 19/' android/app/build.gradle.kts
+            sed -Ei 's/applicationId[[:space:]]*=[[:space:]]*"[^"]+"/applicationId = "com.explapp.retrogamesar.legacy"/' android/app/build.gradle.kts
+          fi
           sed -i 's/android:label="retro_games_ar"/android:label="ألعاب زمان 4.4"/' android/app/src/main/AndroidManifest.xml
           flutter pub get
 
@@ -60,7 +64,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          grep -RInE 'minSdkVersion 19|minSdk = 19' android/app
+          grep -RInE 'minSdkVersion[[:space:]]+19|minSdk[[:space:]]*=[[:space:]]*19' android/app
           grep -RIn 'com.explapp.retrogamesar.legacy' android/app
 
       - name: Analyze legacy source
