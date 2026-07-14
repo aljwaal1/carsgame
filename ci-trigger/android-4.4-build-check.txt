@@ -1,1 +1,1 @@
-Trigger Android 4.4 compatibility build after package rewrite fix.
+Trigger Android 4.4 compatibility build after Android SDK 35 repair.
