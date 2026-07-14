@@ -8,12 +8,14 @@ on:
       - 'apk/**'
       - 'DOWNLOAD_ANDROID_4_4.md'
       - 'ci-logs/**'
+  pull_request:
+    branches: [android-4.4]
 
 permissions:
   contents: write
 
 concurrency:
-  group: carsgame-android-4-4
+  group: carsgame-android-4-4-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -21,10 +23,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:
-      - name: Checkout Android 4.4 branch
+      - name: Checkout Android 4.4 source
         uses: actions/checkout@v4
         with:
-          ref: android-4.4
+          ref: ${{ github.event_name == 'pull_request' && github.head_ref || 'android-4.4' }}
           fetch-depth: 0
 
       - name: Setup Java 11
@@ -43,35 +45,33 @@ jobs:
       - name: Prepare Android API 19 project
         shell: bash
         run: |
-          set -o pipefail
-          {
-            flutter --version
-            flutter create --platforms=android --org com.explapp .
-            rm -rf test
-            sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 19/' android/app/build.gradle
-            sed -i 's/applicationId "com.example.retro_games_ar"/applicationId "com.explapp.retrogamesar.legacy"/' android/app/build.gradle
-            sed -i 's/android:label="retro_games_ar"/android:label="ألعاب زمان 4.4"/' android/app/src/main/AndroidManifest.xml
-            flutter pub get
-          } 2>&1 | tee android-4.4-build.log
+          set -euo pipefail
+          flutter --version
+          flutter create --platforms=android --org com.explapp .
+          rm -rf test
+          sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 19/' android/app/build.gradle
+          sed -i 's/applicationId "com.example.retro_games_ar"/applicationId "com.explapp.retrogamesar.legacy"/' android/app/build.gradle
+          sed -i 's/android:label="retro_games_ar"/android:label="ألعاب زمان 4.4"/' android/app/src/main/AndroidManifest.xml
+          flutter pub get
 
       - name: Verify API 19 configuration
         shell: bash
         run: |
-          set -o pipefail
-          {
-            grep -n 'minSdkVersion 19' android/app/build.gradle
-            grep -n 'com.explapp.retrogamesar.legacy' android/app/build.gradle
-          } 2>&1 | tee -a android-4.4-build.log
+          set -euo pipefail
+          grep -n 'minSdkVersion 19' android/app/build.gradle
+          grep -n 'com.explapp.retrogamesar.legacy' android/app/build.gradle
 
       - name: Analyze legacy source
-        shell: bash
-        run: flutter analyze --no-fatal-infos --no-fatal-warnings 2>&1 | tee -a android-4.4-build.log
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
 
       - name: Build release APK
         shell: bash
-        run: flutter build apk --release --no-tree-shake-icons 2>&1 | tee -a android-4.4-build.log
+        run: |
+          set -o pipefail
+          flutter build apk --release --no-tree-shake-icons 2>&1 | tee carsgame-android-4.4-build.log
 
       - name: Save APK
+        if: success()
         shell: bash
         run: |
           set -euo pipefail
@@ -86,37 +86,36 @@ jobs:
           sha256sum apk/carsgame-android-4.4.apk
 
       - name: Upload APK artifact
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: carsgame-android-4.4
           path: apk/carsgame-android-4.4.apk
           if-no-files-found: error
 
-      - name: Persist failure log
-        if: failure()
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p ci-logs
-          cp android-4.4-build.log ci-logs/carsgame-android-4.4-failure.log || true
-          git config user.name github-actions
-          git config user.email github-actions@github.com
-          git add ci-logs/carsgame-android-4.4-failure.log
-          if ! git diff --cached --quiet; then
-            git commit -m 'ci: save Android 4.4 build failure log'
-            git pull --rebase origin android-4.4
-            git push origin HEAD:android-4.4
-          fi
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: carsgame-android-4.4-build-log
+          path: carsgame-android-4.4-build.log
+          if-no-files-found: ignore
 
-      - name: Commit APK
+      - name: Commit APK or failure log
+        if: github.event_name != 'pull_request'
         shell: bash
         run: |
           set -euo pipefail
           git config user.name github-actions
           git config user.email github-actions@github.com
-          git add apk/carsgame-android-4.4.apk DOWNLOAD_ANDROID_4_4.md
-          if ! git diff --cached --quiet; then
-            git commit -m 'Build Cars Game Android 4.4 APK'
-            git pull --rebase origin android-4.4
-            git push origin HEAD:android-4.4
+          if [ -s apk/carsgame-android-4.4.apk ]; then
+            git add apk/carsgame-android-4.4.apk DOWNLOAD_ANDROID_4_4.md
+            git commit -m 'Build Cars Game Android 4.4 APK' || true
+          elif [ -s carsgame-android-4.4-build.log ]; then
+            mkdir -p ci-logs
+            cp carsgame-android-4.4-build.log ci-logs/carsgame-android-4.4-failure.log
+            git add ci-logs/carsgame-android-4.4-failure.log
+            git commit -m 'ci: save Android 4.4 build failure log' || true
           fi
+          git pull --rebase origin android-4.4
+          git push origin HEAD:android-4.4
