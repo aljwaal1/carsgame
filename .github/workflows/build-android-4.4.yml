@@ -7,6 +7,7 @@ on:
     paths-ignore:
       - 'apk/**'
       - 'DOWNLOAD_ANDROID_4_4.md'
+      - 'ci-logs/**'
 
 permissions:
   contents: write
@@ -42,27 +43,33 @@ jobs:
       - name: Prepare Android API 19 project
         shell: bash
         run: |
-          set -euo pipefail
-          flutter --version
-          flutter create --platforms=android --org com.explapp .
-          rm -rf test
-          sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 19/' android/app/build.gradle
-          sed -i 's/applicationId "com.example.retro_games_ar"/applicationId "com.explapp.retrogamesar.legacy"/' android/app/build.gradle
-          sed -i 's/android:label="retro_games_ar"/android:label="ألعاب زمان 4.4"/' android/app/src/main/AndroidManifest.xml
-          flutter pub get
+          set -o pipefail
+          {
+            flutter --version
+            flutter create --platforms=android --org com.explapp .
+            rm -rf test
+            sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 19/' android/app/build.gradle
+            sed -i 's/applicationId "com.example.retro_games_ar"/applicationId "com.explapp.retrogamesar.legacy"/' android/app/build.gradle
+            sed -i 's/android:label="retro_games_ar"/android:label="ألعاب زمان 4.4"/' android/app/src/main/AndroidManifest.xml
+            flutter pub get
+          } 2>&1 | tee android-4.4-build.log
 
       - name: Verify API 19 configuration
         shell: bash
         run: |
-          set -euo pipefail
-          grep -n 'minSdkVersion 19' android/app/build.gradle
-          grep -n 'com.explapp.retrogamesar.legacy' android/app/build.gradle
+          set -o pipefail
+          {
+            grep -n 'minSdkVersion 19' android/app/build.gradle
+            grep -n 'com.explapp.retrogamesar.legacy' android/app/build.gradle
+          } 2>&1 | tee -a android-4.4-build.log
 
       - name: Analyze legacy source
-        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+        shell: bash
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings 2>&1 | tee -a android-4.4-build.log
 
       - name: Build release APK
-        run: flutter build apk --release --no-tree-shake-icons
+        shell: bash
+        run: flutter build apk --release --no-tree-shake-icons 2>&1 | tee -a android-4.4-build.log
 
       - name: Save APK
         shell: bash
@@ -84,6 +91,22 @@ jobs:
           name: carsgame-android-4.4
           path: apk/carsgame-android-4.4.apk
           if-no-files-found: error
+
+      - name: Persist failure log
+        if: failure()
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p ci-logs
+          cp android-4.4-build.log ci-logs/carsgame-android-4.4-failure.log || true
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add ci-logs/carsgame-android-4.4-failure.log
+          if ! git diff --cached --quiet; then
+            git commit -m 'ci: save Android 4.4 build failure log'
+            git pull --rebase origin android-4.4
+            git push origin HEAD:android-4.4
+          fi
 
       - name: Commit APK
         shell: bash
