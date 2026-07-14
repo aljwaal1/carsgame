@@ -21,7 +21,7 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 40
     steps:
       - name: Checkout Android 4.4 source
         uses: actions/checkout@v4
@@ -42,6 +42,16 @@ jobs:
           channel: stable
           cache: true
 
+      - name: Reinstall Android SDK 35
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH"
+          rm -rf "$ANDROID_HOME/platforms/android-35" "$ANDROID_HOME/build-tools/35.0.0"
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager 'platforms;android-35' 'build-tools;35.0.0' 'platform-tools'
+          test -s "$ANDROID_HOME/platforms/android-35/android.jar"
+
       - name: Prepare Android API 19 project
         shell: bash
         run: |
@@ -50,20 +60,23 @@ jobs:
           flutter create --platforms=android --org com.explapp .
           rm -rf test
           if [ -f android/app/build.gradle ]; then
+            sed -Ei 's/compileSdkVersion[[:space:]]+flutter\.compileSdkVersion/compileSdkVersion 35/' android/app/build.gradle
             sed -Ei 's/minSdkVersion[[:space:]]+flutter\.minSdkVersion/minSdkVersion 19/' android/app/build.gradle
             sed -Ei 's/applicationId[[:space:]]+"[^"]+"/applicationId "com.explapp.retrogamesar.legacy"/' android/app/build.gradle
           fi
           if [ -f android/app/build.gradle.kts ]; then
+            sed -Ei 's/compileSdk[[:space:]]*=[[:space:]]*flutter\.compileSdkVersion/compileSdk = 35/' android/app/build.gradle.kts
             sed -Ei 's/minSdk[[:space:]]*=[[:space:]]*flutter\.minSdkVersion/minSdk = 19/' android/app/build.gradle.kts
             sed -Ei 's/applicationId[[:space:]]*=[[:space:]]*"[^"]+"/applicationId = "com.explapp.retrogamesar.legacy"/' android/app/build.gradle.kts
           fi
           sed -i 's/android:label="retro_games_ar"/android:label="ألعاب زمان 4.4"/' android/app/src/main/AndroidManifest.xml
           flutter pub get
 
-      - name: Verify API 19 configuration
+      - name: Verify Android configuration
         shell: bash
         run: |
           set -euo pipefail
+          grep -RInE 'compileSdkVersion[[:space:]]+35|compileSdk[[:space:]]*=[[:space:]]*35' android/app
           grep -RInE 'minSdkVersion[[:space:]]+19|minSdk[[:space:]]*=[[:space:]]*19' android/app
           grep -RIn 'com.explapp.retrogamesar.legacy' android/app
 
